@@ -1,5 +1,9 @@
 subdir('common')
 
+if get_option('qt-frontend')
+  subdir('fe-qt')
+endif
+
 if get_option('gtk-frontend')
   subdir('fe-gtk')
 endif
