@@ -6,6 +6,8 @@ executable('hexchat-qt',
   dependencies: [hexchat_common_dep, qt6_widgets],
   include_directories: config_h_include,
   c_args: ['-DHAVE_CONFIG_H'],
+  # This frontend adapter uses C11; the original engine stays GNU89.
+  override_options: ['c_std=gnu11'],
   install: true,
   gui_app: true,
 )
