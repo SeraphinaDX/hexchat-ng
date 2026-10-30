@@ -1,8 +1,9 @@
-project('hexchat', 'c',
+project('hexchat', 'c', 'cpp',
   version: '2.16.2',
   meson_version: '>= 0.47.0',
   default_options: [
     'c_std=gnu89',
+    'cpp_std=c++17',
     'buildtype=debugoptimized',
     'warning_level=1',
   ]

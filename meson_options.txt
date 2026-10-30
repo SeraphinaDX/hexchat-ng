@@ -1,4 +1,6 @@
 # Applications
+option('qt-frontend', type: 'boolean', value: false,
+  description: 'Experimental Qt 6 graphical frontend (hexchat-qt)')
 option('gtk-frontend', type: 'boolean',
   description: 'Main graphical interface'
 )

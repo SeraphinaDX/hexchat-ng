@@ -1,0 +1,25 @@
+name: Qt 6 frontend (experimental)
+on:
+  push:
+    branches: [feature/qt6-frontend-foundation]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux-qt6:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build pkg-config \
+            qt6-base-dev libglib2.0-dev libssl-dev gettext
+      - name: Configure Qt frontend without GTK
+        run: |
+          meson setup build-qt -Dqt-frontend=true -Dgtk-frontend=false \
+            -Dplugin=false -Ddbus=disabled -Dlibcanberra=disabled
+      - name: Compile Qt frontend
+        run: meson compile -C build-qt
