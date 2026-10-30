@@ -15,3 +15,10 @@ qt_ircformat_test = executable('qt-ircformat-test',
   dependencies: [qt6_widgets],
 )
 test('qt-ircformat', qt_ircformat_test, env: ['QT_QPA_PLATFORM=offscreen'])
+
+# Validate that Qt's GLib dispatcher processes the default GMainContext.
+qt_glib_dispatcher_test = executable('qt-glib-dispatcher-test',
+  sources: ['glib-dispatcher-test.cpp'],
+  dependencies: [qt6_widgets, dependency('glib-2.0')],
+)
+test('qt-glib-dispatcher', qt_glib_dispatcher_test, env: ['QT_QPA_PLATFORM=offscreen'])
