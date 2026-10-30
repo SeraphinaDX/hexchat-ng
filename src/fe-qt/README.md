@@ -6,12 +6,22 @@ The Qt app uses the existing IRC command parser and connection engine.
 
 ## Build on Linux
 
-Install Qt 6 Widgets, GLib/GIO, Meson, Ninja, OpenSSL and HexChat's normal
-build dependencies. For a Qt-only build, you do not need GTK 2.
+Install Qt 6 Widgets, GLib/GIO, **GLib development tools** (including
+`glib-genmarshal`), Meson, Ninja, OpenSSL and HexChat's normal build
+dependencies. For a Qt-only build, you do not need GTK 2.
+
+On Arch Linux / CachyOS:
+
+    sudo pacman -S --needed base-devel meson ninja pkgconf qt6-base glib2 glib2-devel openssl gettext
+
+**Important:** Arch packages `glib-genmarshal` in `glib2-devel`, not `glib2`.
+If Meson reports that `/usr/bin/glib-genmarshal` is missing, install
+`glib2-devel` and run `meson setup build-qt --reconfigure`.
+
+Configure and build:
 
     meson setup build-qt -Dqt-frontend=true -Dgtk-frontend=false \
-      -Ddbus=disabled -Dlibcanberra=disabled -Dwith-lua=false \
-      -Dwith-python=false -Dwith-perl=false
+      -Dplugin=false -Ddbus=disabled -Dlibcanberra=disabled
     meson compile -C build-qt
     ./build-qt/src/fe-qt/hexchat-qt
 
@@ -29,5 +39,5 @@ support. GTK-specific plugins are **not** yet compatible with Qt.
 **Known limitations:** no rich IRC formatting; incomplete dialogs, network
 list editor, DCC UI, dynamic menus, user-list selection, logging widgets,
 ignore list UI, or GTK plugin window handles. Do not treat this as a
-feature-complete HexChat replacement. Neither a successful build nor live IRC
-operation has been verified by CI at this stage.
+feature-complete HexChat replacement. The Qt compile has passed the Ubuntu CI build; live IRC
+operation and packaging still require manual testing.
