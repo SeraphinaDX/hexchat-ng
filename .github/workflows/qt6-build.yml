@@ -23,3 +23,5 @@ jobs:
             -Dplugin=false -Ddbus=disabled -Dlibcanberra=disabled
       - name: Compile Qt frontend
         run: meson compile -C build-qt
+      - name: Test IRC formatting parser
+        run: meson test -C build-qt --print-errorlogs

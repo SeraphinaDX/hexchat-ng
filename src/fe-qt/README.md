@@ -1,6 +1,6 @@
 # Qt 6 frontend (experimental)
 
-This is the first milestone of the HexChat-NG Qt port. The original C core and
+This is the second milestone of the HexChat-NG Qt port. The original C core and
 GTK frontend remain intact, and the Qt frontend is a **separate executable**.
 The Qt app uses the existing IRC command parser and connection engine.
 
@@ -30,13 +30,21 @@ You can also enter regular HexChat commands in the input field. The Qt
 executable shares HexChat's ordinary configuration unless you specify
 \`--cfgdir /path/to/config\`.
 
-The frontend-to-core boundary lives in \`qt-bridge.h\`. GLib socket sources
-and timers are processed through a temporary Qt timer-driven integration.
-The next milestone is a properly integrated GLib event dispatcher, complete
-network management, the IRC text renderer, DCC windows, menus and plugin GUI
-support. GTK-specific plugins are **not** yet compatible with Qt.
+The frontend-to-core boundary lives in `qt-bridge.h`. On Linux, Qt's
+GLib-backed event dispatcher drives HexChat's existing GLib sources directly.
+Other Qt builds use the previous bounded 15 ms GLib timer fallback (logged
+at startup); they are not yet fully native. The Qt frontend now renders
+mIRC formatting (bold, italic, underline, strike-through, colours including
+hex/RGB, reverse and monospace), time stamps in the local timezone, and
+clickable HTTP(S)/IRC URLs without interpreting chat as HTML. Each channel
+has its own bounded QTextDocument and scroll position. Tests cover IRC
+formatting parsing and links.
 
-**Known limitations:** no rich IRC formatting; incomplete dialogs, network
+Next: the Qt network manager, DCC windows, menus, plugin GUI support and
+more advanced chat customization. GTK-specific plugins are **not** yet
+compatible with Qt.
+
+**Known limitations:** incomplete dialogs, network
 list editor, DCC UI, dynamic menus, user-list selection, logging widgets,
 ignore list UI, or GTK plugin window handles. Do not treat this as a
 feature-complete HexChat replacement. The Qt compile has passed the Ubuntu CI build; live IRC

@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "qt-bridge.h"
+#include "ircformat.h"
+#include <QAbstractEventDispatcher>
 #include <QApplication>
 #include <QCloseEvent>
 #include <QDateTime>
@@ -18,8 +20,9 @@
 #include <QMap>
 #include <QMenuBar>
 #include <QMessageBox>
-#include <QPlainTextEdit>
-#include <QRegularExpression>
+#include <QTextBrowser>
+#include <QTextDocument>
+#include <QScrollBar>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QTimer>
@@ -30,22 +33,20 @@
 #include <glib.h>
 
 namespace {
-QString cleanIrcText(const char *text)
+QString plainIrcText(const char *text)
 {
-    QString result = QString::fromUtf8(text ? text : "");
-    static const QRegularExpression colors(
-        QString::fromLatin1("\x03(?:[0-9]{1,2}(?:,[0-9]{1,2})?)?"));
-    static const QRegularExpression formatting(
-        QString::fromLatin1("[\x02\x0f\x16\x1d\x1f]"));
-    result.remove(colors);
-    result.remove(formatting);
+    QString result;
+    const QPalette palette;
+    for (const IrcRun &run : parseIrcText(QString::fromUtf8(text ? text : ""), palette))
+        result += run.text;
     return result.trimmed();
 }
 
 struct Conversation {
     QString name;
     QString topic;
-    QStringList messages;
+    QTextDocument *document = nullptr;
+    int scrollPosition = -1;
     QMap<QString, QString> nicks;
     QString draft;
 };
@@ -71,10 +72,18 @@ public:
         topic_ = new QLabel(middle);
         topic_->setTextInteractionFlags(Qt::TextSelectableByMouse);
         topic_->setWordWrap(true);
-        chat_ = new QPlainTextEdit(middle);
+        chat_ = new QTextBrowser(middle);
         chat_->setReadOnly(true);
+        chat_->setOpenLinks(false);
+        chat_->setOpenExternalLinks(false);
         chat_->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-        chat_->document()->setMaximumBlockCount(5000);
+        chat_->setUndoRedoEnabled(false);
+        connect(chat_, &QTextBrowser::anchorClicked, this, [](const QUrl &url) {
+            const QString scheme = url.scheme().toLower();
+            if (scheme == QStringLiteral("http") || scheme == QStringLiteral("https") ||
+                scheme == QStringLiteral("irc") || scheme == QStringLiteral("ircs"))
+                QDesktopServices::openUrl(url);
+        });
         middleLayout->addWidget(topic_);
         middleLayout->addWidget(chat_, 1);
         input_ = new QLineEdit(middle);
@@ -127,15 +136,22 @@ public:
         });
         statusBar()->showMessage(QStringLiteral(
             "Qt 6 prototype — use Server → Connect, then Join Channel"));
-        // The C engine still uses GLib sources (socket watches, timers and
-        // plugin hooks). Pump them from the Qt event loop until integration
-        // is replaced with a native event-dispatcher solution.
-        auto *pump = new QTimer(this);
-        connect(pump, &QTimer::timeout, this, []() {
-            for (int i = 0; i < 32 && g_main_context_pending(nullptr); ++i)
-                g_main_context_iteration(nullptr, FALSE);
-        });
-        pump->start(15);
+        // On Linux Qt's GLib event dispatcher runs the default GMainContext
+        // directly, including HexChat's sockets, timers and plugin sources.
+        // Only keep the old bounded timer fallback for Qt builds that do not
+        // ship the GLib dispatcher (notably Windows).
+        auto *dispatcher = QAbstractEventDispatcher::instance();
+        if (dispatcher && dispatcher->inherits("QEventDispatcherGlib")) {
+            qInfo("HexChat-NG Qt: GLib-backed Qt event loop active");
+        } else {
+            qWarning("HexChat-NG Qt: non-GLib event dispatcher; using fallback");
+            auto *pump = new QTimer(this);
+            connect(pump, &QTimer::timeout, this, []() {
+                for (int i = 0; i < 32 && g_main_context_pending(nullptr); ++i)
+                    g_main_context_iteration(nullptr, FALSE);
+            });
+            pump->start(15);
+        }
     }
 
     void addSession(void *key, const QString &name, bool focus)
@@ -143,6 +159,9 @@ public:
         if (conversations_.contains(key)) return;
         Conversation conversation;
         conversation.name = name;
+        conversation.document = new QTextDocument(this);
+        conversation.document->setDefaultFont(chat_->font());
+        conversation.document->setMaximumBlockCount(5000);
         conversations_.insert(key, conversation);
         auto *item = new QTreeWidgetItem(channels_);
         item->setText(0, name);
@@ -155,13 +174,18 @@ public:
 
     void removeSession(void *key)
     {
+        // A QTextBrowser must not retain a document after that session dies.
+        if (active_ == key)
+            chat_->setDocument(new QTextDocument(chat_));
         auto it = items_.find(key);
         if (it != items_.end()) {
             QTreeWidgetItem *item = it.value();
             items_.erase(it);
             delete item;
         }
+        QTextDocument *oldDocument = conversations_.value(key).document;
         conversations_.remove(key);
+        delete oldDocument;
         if (active_ == key) {
             active_ = nullptr;
             if (!items_.isEmpty()) select(items_.cbegin().key());
@@ -180,15 +204,21 @@ public:
     void select(void *key)
     {
         if (!conversations_.contains(key)) return;
-        if (active_ && conversations_.contains(active_))
+        if (active_ == key) {
+            qt_core_activate(key);
+            return;
+        }
+        if (active_ && conversations_.contains(active_)) {
             conversations_[active_].draft = input_->text();
+            conversations_[active_].scrollPosition = chat_->verticalScrollBar()->value();
+        }
         active_ = key;
         qt_core_activate(key);
         auto &conversation = conversations_[key];
-        chat_->setPlainText(conversation.messages.join(QLatin1Char('\n')));
-        auto cursor = chat_->textCursor();
-        cursor.movePosition(QTextCursor::End);
-        chat_->setTextCursor(cursor);
+        chat_->setDocument(conversation.document);
+        QScrollBar *scroll = chat_->verticalScrollBar();
+        scroll->setValue(conversation.scrollPosition < 0 ? scroll->maximum()
+                         : qMin(conversation.scrollPosition, scroll->maximum()));
         topic_->setText(conversation.topic);
         input_->setText(conversation.draft);
         refreshUsers();
@@ -200,20 +230,21 @@ public:
         input_->setFocus();
     }
 
-    void print(void *key, const QString &message)
+    void print(void *key, const QString &message, std::time_t timestamp)
     {
         if (!conversations_.contains(key)) return;
-        auto &lines = conversations_[key].messages;
-        lines.append(message);
-        while (lines.size() > 5000) lines.removeFirst();
-        if (key == active_) chat_->appendPlainText(message);
+        QScrollBar *scroll = chat_->verticalScrollBar();
+        const bool wasAtBottom = (key == active_) &&
+            (scroll->maximum() - scroll->value() <= 20);
+        appendIrcMessage(conversations_[key].document, message, timestamp, chat_->palette());
+        if (wasAtBottom) scroll->setValue(scroll->maximum());
     }
 
     void clear(void *key)
     {
         if (!conversations_.contains(key)) return;
-        conversations_[key].messages.clear();
-        if (key == active_) chat_->clear();
+        conversations_[key].document->clear();
+        conversations_[key].scrollPosition = -1;
     }
 
     void topic(void *key, const QString &topic)
@@ -271,7 +302,7 @@ public:
     {
         statusBar()->showMessage(text, 12000);
         if (warning) QMessageBox::warning(this, QStringLiteral("HexChat-NG"), text);
-        else if (active_) print(active_, text);
+        else if (active_) print(active_, text, 0);
     }
 
 protected:
@@ -304,7 +335,7 @@ private:
     }
 
     QTreeWidget *channels_ = nullptr;
-    QPlainTextEdit *chat_ = nullptr;
+    QTextBrowser *chat_ = nullptr;
     QLineEdit *input_ = nullptr;
     QListWidget *nicks_ = nullptr;
     QLabel *topic_ = nullptr;
@@ -349,16 +380,12 @@ void qt_fe_rename_session(void *sess, const char *name)
 void qt_fe_select_session(void *sess) { if (window) window->select(sess); }
 void qt_fe_print(void *sess, const char *text, time_t stamp)
 {
-    QString message = cleanIrcText(text);
-    if (!message.isEmpty() && stamp > 0)
-        message.prepend(QLatin1Char('[') +
-            QDateTime::fromSecsSinceEpoch(stamp).toLocalTime().toString(QStringLiteral("HH:mm")) +
-            QStringLiteral("] "));
-    if (window && !message.isEmpty()) window->print(sess, message);
+    if (window && text && *text)
+        window->print(sess, QString::fromUtf8(text), stamp);
 }
 void qt_fe_clear(void *sess) { if (window) window->clear(sess); }
 void qt_fe_topic(void *sess, const char *topic)
-{ if (window) window->topic(sess, cleanIrcText(topic)); }
+{ if (window) window->topic(sess, plainIrcText(topic)); }
 void qt_fe_user_add(void *sess, const char *nick, const char *prefix)
 { if (window) window->addUser(sess, QString::fromUtf8(nick ? nick : ""),
                               QString::fromUtf8(prefix ? prefix : "")); }
