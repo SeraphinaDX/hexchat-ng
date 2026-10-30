@@ -43,6 +43,14 @@ enum dcc_type {
 
 #define CPS_AVG_WINDOW 10
 
+/* Preserve the two-glong layout of the now-deprecated GTimeVal without
+ * forcing Qt consumers of fe.h to use a deprecated GLib typedef. */
+typedef struct dcc_timeval
+{
+    glong tv_sec;
+    glong tv_usec;
+} dcc_timeval;
+
 struct DCC
 {
 	struct server *serv;
@@ -59,7 +67,7 @@ struct DCC
 	int resume_error;
 	int resume_errno;
 
-	GTimeVal lastcpstv, firstcpstv;
+	dcc_timeval lastcpstv, firstcpstv;
 	goffset lastcpspos;
 	gint64 maxcps;
 

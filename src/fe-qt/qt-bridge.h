@@ -20,7 +20,9 @@ void qt_fe_select_session(void *session);
 void qt_fe_print(void *session, const char *text, time_t stamp);
 void qt_fe_clear(void *session);
 void qt_fe_topic(void *session, const char *topic);
-void qt_fe_user_add(void *session, const char *nick, const char *prefix);
+void qt_fe_user_add(void *session, const char *nick, const char *prefix, int select);
+int qt_fe_user_selected(void *session, const char *nick);
+void qt_fe_user_select(void *session, const char *nick, int clear, int scroll);
 void qt_fe_user_remove(void *session, const char *nick);
 void qt_fe_users_clear(void *session);
 void qt_fe_activity(void *session, int level);
@@ -31,6 +33,7 @@ void qt_fe_open_url(const char *url);
 int qt_fe_confirm(const char *message);
 const char *qt_fe_pick_file(const char *title, const char *initial, int flags);
 int qt_fe_is_active(void);
+void qt_fe_network_manager(void);
 
 /* Implemented on the C side; called by Qt controls. */
 void qt_core_activate(void *session);

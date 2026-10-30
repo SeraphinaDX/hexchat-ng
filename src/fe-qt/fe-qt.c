@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <glib-object.h>
 #include "../common/hexchat.h"
+#include <glib-object.h>
 #include "../common/hexchatc.h"
 #include "../common/cfgfiles.h"
 #include "../common/outbound.h"
@@ -123,24 +123,41 @@ void fe_beep(session *sess) { (void)sess; g_print("\a"); }
 
 void fe_userlist_insert(session *sess, struct User *user, gboolean select)
 {
-  (void)select;
-  if (user) qt_fe_user_add(sess, user->nick, user->prefix);
+  if (user) qt_fe_user_add(sess, user->nick, user->prefix, select || user->selected);
 }
 int fe_userlist_remove(session *sess, struct User *user)
 {
-  if (user) qt_fe_user_remove(sess, user->nick);
-  return 0;
+  if (!user) return 0;
+  user->selected = qt_fe_user_selected(sess, user->nick);
+  qt_fe_user_remove(sess, user->nick);
+  return user->selected;
 }
 void fe_userlist_rehash(session *sess, struct User *user)
 {
-  if (user) { qt_fe_user_remove(sess, user->nick); qt_fe_user_add(sess, user->nick, user->prefix); }
+  if (user) qt_fe_user_add(sess, user->nick, user->prefix, FALSE);
 }
 void fe_userlist_update(session *sess, struct User *user) { fe_userlist_rehash(sess, user); }
 void fe_userlist_clear(session *sess) { qt_fe_users_clear(sess); }
 void fe_userlist_numbers(session *sess) { (void)sess; }
-void fe_userlist_set_selected(session *sess) { (void)sess; }
+void fe_userlist_set_selected(session *sess)
+{
+  GSList *users = userlist_flat_list(sess), *entry;
+  for (entry = users; entry; entry = entry->next) {
+    struct User *user = entry->data;
+    user->selected = qt_fe_user_selected(sess, user->nick);
+  }
+  g_slist_free(users);
+}
 void fe_uselect(session *sess, char *word[], int clear, int scroll_to)
-{ (void)sess; (void)word; (void)clear; (void)scroll_to; }
+{
+  int i;
+  if (clear) qt_fe_user_select(sess, NULL, TRUE, FALSE);
+  for (i = 0; word[i] && *word[i]; ++i) {
+    /* Let the IRC engine resolve the server's nickname case mapping. */
+    struct User *user = userlist_find(sess, word[i]);
+    if (user) qt_fe_user_select(sess, user->nick, FALSE, scroll_to);
+  }
+}
 
 void fe_ctrl_gui(session *sess, fe_gui_action action, int arg)
 {
@@ -257,7 +274,7 @@ void fe_lastlog(session *sess, session *lastlog, char *search, gtk_xtext_search_
 void fe_set_lag(server *serv, long lag) { (void)serv; (void)lag; }
 void fe_set_throttle(server *serv) { (void)serv; }
 void fe_set_away(server *serv) { (void)serv; }
-void fe_serverlist_open(session *sess) { (void)sess; /* TODO: Qt network editor */ }
+void fe_serverlist_open(session *sess) { (void)sess; qt_fe_network_manager(); }
 void fe_get_bool(char *title, char *prompt, void *callback, void *userdata)
 { (void)title; (void)prompt; (void)callback; (void)userdata; }
 void fe_get_str(char *prompt, char *def, void *callback, void *userdata)
