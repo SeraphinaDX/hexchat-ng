@@ -101,8 +101,8 @@ static int new_id(void)
 }
 
 static double
-timeval_diff (GTimeVal *greater,
-				 GTimeVal *less)
+timeval_diff (dcc_timeval *greater,
+				 dcc_timeval *less)
 {
 	long usecdiff;
 	double result;
@@ -127,7 +127,8 @@ dcc_unthrottle (struct DCC *dcc)
 static void
 dcc_calc_cps (struct DCC *dcc)
 {
-	GTimeVal now;
+	dcc_timeval now;
+	gint64 now_usec;
 	gint64 oldcps;
 	double timediff, startdiff;
 	int glob_throttle_bit, wasthrottled;
@@ -135,7 +136,11 @@ dcc_calc_cps (struct DCC *dcc)
 	int glob_limit;
 	goffset pos, posdiff;
 
-	g_get_current_time (&now);
+	/* g_get_current_time() and GTimeVal are deprecated in modern GLib.
+     * g_get_real_time() provides the same wall-clock microseconds. */
+    now_usec = g_get_real_time ();
+    now.tv_sec = (glong) (now_usec / G_USEC_PER_SEC);
+    now.tv_usec = (glong) (now_usec % G_USEC_PER_SEC);
 
 	/* the pos we use for sends is an average
 		between pos and ack */

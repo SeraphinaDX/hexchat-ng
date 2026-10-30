@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <glib-object.h>
 #include "../common/hexchat.h"
+#include <glib-object.h>
 #include "../common/hexchatc.h"
 #include "../common/cfgfiles.h"
 #include "../common/outbound.h"

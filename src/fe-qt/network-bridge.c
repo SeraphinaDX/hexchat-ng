@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <glib.h>
 #include "../common/hexchat.h"
+#include <glib.h>
 #include "../common/servlist.h"
 #include "qt-network.h"
 
