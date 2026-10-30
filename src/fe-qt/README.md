@@ -1,6 +1,6 @@
 # Qt 6 frontend (experimental)
 
-This is the third milestone of the HexChat-NG Qt port. The original C core and
+This is the experimental Qt frontend of the HexChat-NG port. The original C core and
 GTK frontend remain intact, and the Qt frontend is a **separate executable**.
 The Qt app uses the existing IRC command parser and connection engine.
 
@@ -34,6 +34,20 @@ You can also enter regular HexChat commands in the input field. The Qt
 executable shares HexChat's ordinary configuration unless you specify
 \`--cfgdir /path/to/config\`.
 
+Use **Up/Down** in the message field to browse the last 100 submitted lines
+for the current conversation. Returning past the newest entry restores your
+unsent draft. History is kept in memory for that conversation's lifetime.
+Press **Tab** to complete a nickname from the channel's current user list;
+repeated presses cycle matching names. A nickname at the start of the line
+gets a `: ` suffix. **Shift+Tab** still moves keyboard focus.
+
+Double-click a nickname (or select it and press Enter) to open a private chat.
+Right-click a nickname for **Open Private Chat** and **WHOIS**. Use Ctrl/Shift
+to select multiple users; each conversation keeps its own selection as users
+join, leave, or change nicknames or privileges. `/uselect nick`,
+`/uselect -a nick` (add), `/uselect -s nick` (scroll), and `/uselect` (clear)
+also work, using the server's nickname case mapping.
+
 The frontend-to-core boundary lives in `qt-bridge.h`. On Linux, Qt's
 GLib-backed event dispatcher drives HexChat's existing GLib sources directly.
 Other Qt builds use the previous bounded 15 ms GLib timer fallback (logged
@@ -49,7 +63,7 @@ more advanced chat customization. GTK-specific plugins are **not** yet
 compatible with Qt.
 
 **Known limitations:** incomplete dialogs, DCC UI, dynamic menus,
-user-list selection, logging widgets,
+logging widgets,
 ignore list UI, or GTK plugin window handles. Do not treat this as a
 feature-complete HexChat replacement. The Qt compile has passed the Ubuntu CI build; live IRC
 operation and packaging still require manual testing.
@@ -73,3 +87,10 @@ will stop associating that live connection with the removed network.
 Manual test: add a network, save, reopen the manager, connect, verify SASL/TLS
 and auto-join, then restart the application and confirm persistence. Existing
 GTK and Qt command handling should still work.
+
+User-list manual test: open a private chat by double-clicking a prefixed nick,
+request WHOIS from its context menu, Ctrl-select several users, switch channels
+and back, and verify the selection remains. Try the `/uselect` variants above.
+Have a selected user change nick or privileges and then leave; the selection
+should follow the user until departure. Close a channel while its user context
+menu is open and verify that dismissing the menu does not act on another channel.

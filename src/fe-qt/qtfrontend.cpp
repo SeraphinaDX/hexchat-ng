@@ -5,6 +5,9 @@
 #include "qt-bridge.h"
 #include "ircformat.h"
 #include "networkdialog.h"
+#include "chatinput.h"
+#include "nicklist.h"
+#include <memory>
 #include <QAbstractEventDispatcher>
 #include <QApplication>
 #include <QCloseEvent>
@@ -48,8 +51,9 @@ struct Conversation {
     QString topic;
     QTextDocument *document = nullptr;
     int scrollPosition = -1;
-    QMap<QString, QString> nicks;
+    std::shared_ptr<NickListState> users = std::make_shared<NickListState>();
     QString draft;
+    std::shared_ptr<InputHistory> history = std::make_shared<InputHistory>();
 };
 
 class MainWindow final : public QMainWindow {
@@ -87,10 +91,13 @@ public:
         });
         middleLayout->addWidget(topic_);
         middleLayout->addWidget(chat_, 1);
-        input_ = new QLineEdit(middle);
+        input_ = new ChatInput(middle);
         input_->setPlaceholderText(QStringLiteral("Message or /command"));
         middleLayout->addWidget(input_);
-        nicks_ = new QListWidget(split);
+        nicks_ = new NickList(split);
+        nicks_->action = [this](const QString &nick, bool whois) {
+            submit((whois ? QStringLiteral("/whois ") : QStringLiteral("/query ")) + nick);
+        };
         nicks_->setMinimumWidth(100);
         nicks_->setMaximumWidth(300);
         split->setStretchFactor(0, 0);
@@ -126,6 +133,7 @@ public:
         connect(input_, &QLineEdit::returnPressed, this, [this]() {
             const QString line = input_->text();
             if (line.isEmpty() || !active_) return;
+            conversations_[active_].history->record(line);
             input_->clear();
             const QByteArray bytes = line.toUtf8();
             qt_core_submit(active_, bytes.constData());
@@ -140,7 +148,7 @@ public:
             if (key) select(key);
         });
         statusBar()->showMessage(QStringLiteral(
-            "Qt 6 prototype — use Server → Connect, then Join Channel"));
+            "Qt 6 prototype — use Server → Network Manager, then Join Channel"));
         // On Linux Qt's GLib event dispatcher runs the default GMainContext
         // directly, including HexChat's sockets, timers and plugin sources.
         // Only keep the old bounded timer fallback for Qt builds that do not
@@ -182,6 +190,10 @@ public:
         // A QTextBrowser must not retain a document after that session dies.
         if (active_ == key)
             chat_->setDocument(new QTextDocument(chat_));
+        if (active_ == key) {
+            input_->setConversation(nullptr, {});
+            nicks_->setState(nullptr);
+        }
         auto it = items_.find(key);
         if (it != items_.end()) {
             QTreeWidgetItem *item = it.value();
@@ -226,6 +238,7 @@ public:
                          : qMin(conversation.scrollPosition, scroll->maximum()));
         topic_->setText(conversation.topic);
         input_->setText(conversation.draft);
+        input_->setConversation(conversation.history.get(), conversation.users->users.keys());
         refreshUsers();
         updateTitle();
         auto *item = items_.value(key, nullptr);
@@ -259,25 +272,46 @@ public:
         if (key == active_) topic_->setText(topic);
     }
 
-    void addUser(void *key, const QString &nick, const QString &prefix)
+    void addUser(void *key, const QString &nick, const QString &prefix, bool select)
     {
         if (!conversations_.contains(key)) return;
-        conversations_[key].nicks[nick] = prefix + nick;
+        auto &users = *conversations_[key].users;
+        users.users[nick] = prefix + nick;
+        if (select) users.selected.insert(nick);
         if (key == active_) refreshUsers();
     }
 
     void removeUser(void *key, const QString &nick)
     {
         if (!conversations_.contains(key)) return;
-        conversations_[key].nicks.remove(nick);
+        conversations_[key].users->users.remove(nick);
+        conversations_[key].users->selected.remove(nick);
         if (key == active_) refreshUsers();
     }
 
     void clearUsers(void *key)
     {
         if (!conversations_.contains(key)) return;
-        conversations_[key].nicks.clear();
-        if (key == active_) nicks_->clear();
+        conversations_[key].users->users.clear();
+        conversations_[key].users->selected.clear();
+        if (key == active_) refreshUsers();
+    }
+
+    bool userSelected(void *key, const QString &nick) const
+    {
+        return conversations_.contains(key) && conversations_[key].users->selected.contains(nick);
+    }
+
+    void selectUser(void *key, const QString &nick, bool clear, bool scroll)
+    {
+        if (!conversations_.contains(key)) return;
+        auto &state = *conversations_[key].users;
+        if (clear) state.selected.clear();
+        if (state.users.contains(nick)) state.selected.insert(nick);
+        if (key == active_) {
+            nicks_->refresh();
+            if (!nick.isEmpty()) nicks_->selectNick(nick, scroll);
+        }
     }
 
     void activity(void *key, int level)
@@ -329,9 +363,9 @@ private:
     }
     void refreshUsers()
     {
-        nicks_->clear();
-        if (!conversations_.contains(active_)) return;
-        nicks_->addItems(conversations_[active_].nicks.values());
+        if (!conversations_.contains(active_)) { nicks_->setState(nullptr); return; }
+        nicks_->setState(conversations_[active_].users);
+        input_->setNicks(conversations_[active_].users->users.keys());
     }
     void updateTitle()
     {
@@ -341,8 +375,8 @@ private:
 
     QTreeWidget *channels_ = nullptr;
     QTextBrowser *chat_ = nullptr;
-    QLineEdit *input_ = nullptr;
-    QListWidget *nicks_ = nullptr;
+    ChatInput *input_ = nullptr;
+    NickList *nicks_ = nullptr;
     QLabel *topic_ = nullptr;
     QHash<void *, Conversation> conversations_;
     QHash<void *, QTreeWidgetItem *> items_;
@@ -392,11 +426,15 @@ void qt_fe_print(void *sess, const char *text, time_t stamp)
 void qt_fe_clear(void *sess) { if (window) window->clear(sess); }
 void qt_fe_topic(void *sess, const char *topic)
 { if (window) window->topic(sess, plainIrcText(topic)); }
-void qt_fe_user_add(void *sess, const char *nick, const char *prefix)
+void qt_fe_user_add(void *sess, const char *nick, const char *prefix, int select)
 { if (window) window->addUser(sess, QString::fromUtf8(nick ? nick : ""),
-                              QString::fromUtf8(prefix ? prefix : "")); }
+                              QString::fromUtf8(prefix ? prefix : ""), select != 0); }
 void qt_fe_user_remove(void *sess, const char *nick)
 { if (window) window->removeUser(sess, QString::fromUtf8(nick ? nick : "")); }
+int qt_fe_user_selected(void *sess, const char *nick)
+{ return window && window->userSelected(sess, QString::fromUtf8(nick ? nick : "")); }
+void qt_fe_user_select(void *sess, const char *nick, int clear, int scroll)
+{ if (window) window->selectUser(sess, QString::fromUtf8(nick ? nick : ""), clear != 0, scroll != 0); }
 void qt_fe_users_clear(void *sess) { if (window) window->clearUsers(sess); }
 void qt_fe_activity(void *sess, int level) { if (window) window->activity(sess, level); }
 void qt_fe_message(const char *text, int warning)
