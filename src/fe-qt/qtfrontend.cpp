@@ -4,6 +4,7 @@
  */
 #include "qt-bridge.h"
 #include "ircformat.h"
+#include "networkdialog.h"
 #include <QAbstractEventDispatcher>
 #include <QApplication>
 #include <QCloseEvent>
@@ -100,7 +101,11 @@ public:
         setCentralWidget(center);
 
         auto *serverMenu = menuBar()->addMenu(QStringLiteral("&Server"));
-        serverMenu->addAction(QStringLiteral("&Connect…"), this, [this]() {
+        serverMenu->addAction(QStringLiteral("&Network Manager…"), this, [this]() {
+            showNetworkManager(this);
+        });
+        serverMenu->addSeparator();
+        serverMenu->addAction(QStringLiteral("&Quick Connect…"), this, [this]() {
             bool ok = false;
             const QString host = QInputDialog::getText(
                 this, QStringLiteral("Connect to IRC"),
@@ -372,6 +377,7 @@ void qt_fe_initialize(int *argc, char **argv)
 }
 int qt_fe_run(void) { return app ? app->exec() : 1; }
 void qt_fe_quit(void) { if (app) app->quit(); }
+void qt_fe_network_manager(void) { showNetworkManager(ui()); }
 void qt_fe_new_session(void *sess, const char *name, int focus)
 { ui()->addSession(sess, QString::fromUtf8(name ? name : "Server"), focus != 0); }
 void qt_fe_remove_session(void *sess) { if (window) window->removeSession(sess); }

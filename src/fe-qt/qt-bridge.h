@@ -31,6 +31,7 @@ void qt_fe_open_url(const char *url);
 int qt_fe_confirm(const char *message);
 const char *qt_fe_pick_file(const char *title, const char *initial, int flags);
 int qt_fe_is_active(void);
+void qt_fe_network_manager(void);
 
 /* Implemented on the C side; called by Qt controls. */
 void qt_core_activate(void *session);

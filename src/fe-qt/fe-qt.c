@@ -257,7 +257,7 @@ void fe_lastlog(session *sess, session *lastlog, char *search, gtk_xtext_search_
 void fe_set_lag(server *serv, long lag) { (void)serv; (void)lag; }
 void fe_set_throttle(server *serv) { (void)serv; }
 void fe_set_away(server *serv) { (void)serv; }
-void fe_serverlist_open(session *sess) { (void)sess; /* TODO: Qt network editor */ }
+void fe_serverlist_open(session *sess) { (void)sess; qt_fe_network_manager(); }
 void fe_get_bool(char *title, char *prompt, void *callback, void *userdata)
 { (void)title; (void)prompt; (void)callback; (void)userdata; }
 void fe_get_str(char *prompt, char *def, void *callback, void *userdata)
