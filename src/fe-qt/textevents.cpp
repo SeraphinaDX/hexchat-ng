@@ -158,7 +158,7 @@ public:
         setAttribute(Qt::WA_DeleteOnClose); resize(850, 500);
         auto *layout = new QVBoxLayout(this);
         auto *filter = new QLineEdit(this); filter->setObjectName(QStringLiteral("soundFilter")); filter->setPlaceholderText(QStringLiteral("Filter event names")); layout->addWidget(filter);
-        auto *help = new QLabel(QStringLiteral("Assign a sound file to an event, or leave it empty for no custom sound. Relative paths use the sounds directory inside the ZoiteChat configuration directory. Playback uses the core's platform sound backend."), this);
+        auto *help = new QLabel(QStringLiteral("Assign a sound file to an event, or leave it empty for no custom sound. Relative paths use the sounds directory inside the hexchat-ng configuration directory. Playback uses the core's platform sound backend."), this);
         help->setWordWrap(true); help->setTextFormat(Qt::PlainText); layout->addWidget(help);
         model_ = new QStandardItemModel(this); model_->setHorizontalHeaderLabels({QStringLiteral("Event"), QStringLiteral("Sound file")});
         proxy_ = new QSortFilterProxyModel(this); proxy_->setSourceModel(model_); proxy_->setFilterKeyColumn(0); proxy_->setFilterCaseSensitivity(Qt::CaseInsensitive);

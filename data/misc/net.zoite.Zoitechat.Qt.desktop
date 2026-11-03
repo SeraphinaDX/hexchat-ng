@@ -1,8 +1,8 @@
 [Desktop Entry]
-Name=ZoiteChat (Qt)
+Name=hexchat-ng
 Comment=IRC client with a Qt frontend
-Exec=zoitechat-qt %U
-Icon=net.zoite.Zoitechat
+Exec=hexchat-ng %U
+Icon=hexchat-ng
 Terminal=false
 Type=Application
 Categories=Network;IRCClient;

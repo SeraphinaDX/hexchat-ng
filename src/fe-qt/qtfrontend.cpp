@@ -1,5 +1,5 @@
 /*
- * ZoiteChat Qt 6 prototype. The engine and plugin ABI remain C.
+ * hexchat-ng Qt 6 prototype. The engine and plugin ABI remain C.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "qt-bridge.h"
@@ -144,6 +144,7 @@ struct Conversation {
     QTextBlock marker;
     quint64 markerId = 0;
     std::shared_ptr<NickListState> users = std::make_shared<NickListState>();
+    QMap<QString, QPair<QString, qint64>> typing;
     QString draft;
     std::shared_ptr<InputHistory> history = std::make_shared<InputHistory>();
 };
@@ -246,6 +247,7 @@ public:
     QMap<QChar, QToolButton *> modeButtons;
     QToolButton *keyStatus = nullptr, *limitStatus = nullptr;
     QLineEdit *userFilter = nullptr;
+    QLabel *typingStatus = nullptr;
     QLabel *userCount = nullptr, *lagStatus = nullptr, *queueStatus = nullptr;
     QProgressBar *lagMeter = nullptr, *queueMeter = nullptr;
     QLineEdit *search = nullptr;
@@ -270,7 +272,7 @@ public:
     MainWindow()
     {
         loadIrcPalette(QDir(QString::fromUtf8(qt_core_config_dir())).filePath(QStringLiteral("colors.conf")));
-        setWindowTitle(QStringLiteral("ZoiteChat — Qt 6"));
+        setWindowTitle(QStringLiteral("hexchat-ng — Qt 6"));
         resize(1080, 700);
         settings_ = std::make_unique<QSettings>(
             QDir(QString::fromUtf8(qt_core_config_dir())).filePath(QStringLiteral("qt-frontend.ini")),
@@ -461,7 +463,10 @@ public:
             if (key) select(key);
         });
         statusBar()->showMessage(QStringLiteral(
-            "Qt 6 prototype — use ZoiteChat → Network List, then Server → Join a Channel"));
+            "Qt 6 prototype — use hexchat-ng → Network List, then Server → Join a Channel"));
+        typingStatus_ = new QLabel(this); typingStatus_->setObjectName(QStringLiteral("typingStatus"));
+        typingStatus_->setTextFormat(Qt::PlainText); statusBar()->addWidget(typingStatus_, 1);
+        connect(input_, &QLineEdit::textEdited, this, [this](const QString &text) { qt_core_typing_update(active_, text.toUtf8().constData()); });
         connection_ = new QLabel(this);
         connection_->setObjectName(QStringLiteral("connectionStatus"));
         connection_->setTextFormat(Qt::PlainText);
@@ -486,14 +491,14 @@ public:
         connect(statusTimer, &QTimer::timeout, this, [this]() { updateStatus(); });
         statusTimer->start(1000);
         // On Linux Qt's GLib event dispatcher runs the default GMainContext
-        // directly, including ZoiteChat's sockets, timers and plugin sources.
+        // directly, including hexchat-ng's sockets, timers and plugin sources.
         // Only keep the old bounded timer fallback for Qt builds that do not
         // ship the GLib dispatcher (notably Windows).
         auto *dispatcher = QAbstractEventDispatcher::instance();
         if (dispatcher && dispatcher->inherits("QEventDispatcherGlib")) {
-            qInfo("ZoiteChat Qt: GLib-backed Qt event loop active");
+            qInfo("hexchat-ng Qt: GLib-backed Qt event loop active");
         } else {
-            qWarning("ZoiteChat Qt: non-GLib event dispatcher; using fallback");
+            qWarning("hexchat-ng Qt: non-GLib event dispatcher; using fallback");
             auto *pump = new QTimer(this);
             connect(pump, &QTimer::timeout, this, []() {
                 for (int i = 0; i < 32 && g_main_context_pending(nullptr); ++i)
@@ -721,9 +726,40 @@ public:
         if (key == active_) scheduleUsersRefresh();
     }
 
+    void setTyping(void *key, const QString &nick, const QString &state)
+    {
+        if (!conversations_.contains(key) || nick.isEmpty()) return;
+        auto &entries = conversations_[key].typing;
+        for (auto it = entries.begin(); it != entries.end();) {
+            if (qt_core_completion_compare(key, it.key().toUtf8().constData(), nick.toUtf8().constData()) == 0) it = entries.erase(it);
+            else ++it;
+        }
+        if (state == QStringLiteral("active") || state == QStringLiteral("paused"))
+            entries[nick] = qMakePair(state, QDateTime::currentMSecsSinceEpoch() + (state == QStringLiteral("active") ? 6000 : 30000));
+        refreshTyping();
+    }
+    void refreshTyping()
+    {
+        for (auto conversation = conversations_.begin(); conversation != conversations_.end(); ++conversation) {
+            QtSessionInfo info{};
+            if (!qt_core_session_info(conversation.key(), &info) || !info.connected) conversation->typing.clear();
+            QStringList descriptions;
+            auto &entries = conversation->typing;
+            for (auto it = entries.begin(); it != entries.end();) {
+                if (it.value().second <= QDateTime::currentMSecsSinceEpoch()) it = entries.erase(it);
+                else { descriptions << it.key() + (it.value().first == QStringLiteral("active") ? QStringLiteral(" is typing…") : QStringLiteral(" has paused typing")); ++it; }
+            }
+            const auto text = descriptions.join(QStringLiteral(", "));
+            if (conversation.key() == active_ && typingStatus_) typingStatus_->setText(text);
+            if (detached_.contains(conversation.key())) detached_[conversation.key()]->typingStatus->setText(text);
+        }
+        if (!conversations_.contains(active_) && typingStatus_) typingStatus_->clear();
+    }
+
     void removeUser(void *key, const QString &nick)
     {
         if (!conversations_.contains(key)) return;
+        setTyping(key, nick, QStringLiteral("done"));
         conversations_[key].users->users.remove(nick);
         conversations_[key].users->insertionOrder.removeAll(nick);
         conversations_[key].users->selected.remove(nick);
@@ -857,7 +893,10 @@ public:
         view->userButtons = new QScrollArea(view->userPanel); view->userButtons->setWidgetResizable(true); view->userButtons->setMaximumHeight(180); userLayout->addWidget(view->userButtons);
         layout->addWidget(split, 1);
         view->dialogButtons = new QScrollArea(center); view->dialogButtons->setWidgetResizable(true); view->dialogButtons->setMaximumHeight(90); layout->addWidget(view->dialogButtons);
+        view->typingStatus = new QLabel(view); view->typingStatus->setObjectName(QStringLiteral("typingStatus"));
+        view->typingStatus->setTextFormat(Qt::PlainText); view->statusBar()->addWidget(view->typingStatus, 1);
         view->input = new ChatInput(center); view->input->setDefaultShortcutsEnabled(false); view->input->setObjectName(QStringLiteral("detachedInput"));
+        connect(view->input, &QLineEdit::textEdited, view, [this, target](const QString &text) { if (alive(target)) qt_core_typing_update(target.key, text.toUtf8().constData()); });
         view->input->setConversation(state.history.get(), state.users->users.keys());
         view->input->setText(state.draft); view->input->setCursorPosition(state.inputCursor);
         view->input->wordReplacement = input_->wordReplacement;
@@ -878,7 +917,7 @@ public:
         auto *inputRow = new QHBoxLayout; view->nickname = new QPushButton(center); view->nickname->setObjectName(QStringLiteral("inputNickname")); view->nickname->setFlat(true); view->nickname->setFocusPolicy(Qt::NoFocus);
         connect(view->nickname, &QPushButton::clicked, view, [this, target]() { changeNickname(target); });
         inputRow->addWidget(view->nickname); inputRow->addWidget(view->input, 1); layout->addLayout(inputRow); view->setCentralWidget(center);
-        auto *file = view->menuBar()->addMenu(QStringLiteral("&ZoiteChat"));
+        auto *file = view->menuBar()->addMenu(QStringLiteral("&hexchat-ng"));
         file->setObjectName(QStringLiteral("detachedZoitechatMenu"));
         addAction(file, QStringLiteral("Network Li&st"), QStringLiteral("detachedNetworkList"), QKeySequence(QStringLiteral("Ctrl+S")), [view]() { showNetworkManager(view); });
         file->addSeparator();
@@ -1022,7 +1061,7 @@ public:
         // Keep a single editable view of this conversation.
         active_ = nullptr; chat_->setDocument(emptyDocument_); input_->clear(); input_->setConversation(nullptr, {}); nicks_->setState(nullptr); topic_->clear(); updateStatus(); updateTitle();
         for (auto *item : items_) if (keyForItem(item) != key && !detached_.contains(keyForItem(item))) { select(keyForItem(item)); break; }
-        setTopicText(view->topic, state.topic); view->setWindowTitle(state.name + QStringLiteral(" — ZoiteChat"));
+        setTopicText(view->topic, state.topic); view->setWindowTitle(state.name + QStringLiteral(" — hexchat-ng"));
         view->restoreGeometry(settings_->value(view->geometryKey + QStringLiteral("/geometry")).toByteArray());
         view->splitter->restoreState(settings_->value(view->geometryKey + QStringLiteral("/splitter")).toByteArray());
         applyDisplay(); view->show();
@@ -1117,6 +1156,7 @@ public:
     {
         if (!conversations_.contains(key)) return;
         desktop_->forget(key);
+        conversations_[key].typing.clear(); refreshTyping();
         conversations_[key].users = std::make_shared<NickListState>();
         if (key == active_) refreshUsers();
     }
@@ -1203,7 +1243,7 @@ public:
     void notify(const QString &text, bool warning)
     {
         statusBar()->showMessage(text, 12000);
-        if (warning) QMessageBox::warning(this, QStringLiteral("ZoiteChat"), text);
+        if (warning) QMessageBox::warning(this, QStringLiteral("hexchat-ng"), text);
         else if (active_) print(active_, text, 0);
     }
 
@@ -1976,7 +2016,7 @@ private:
         auto root = [this](const QString &title, const QString &id) {
             auto *menu = menuBar()->addMenu(title); menu->setObjectName(id); return menu;
         };
-        auto *zoitechat = root(QStringLiteral("&ZoiteChat"), QStringLiteral("zoitechatMenu"));
+        auto *zoitechat = root(QStringLiteral("&hexchat-ng"), QStringLiteral("zoitechatMenu"));
         auto *view = root(QStringLiteral("&View"), QStringLiteral("viewMenu"));
         auto *server = root(QStringLiteral("&Server"), QStringLiteral("serverMenu"));
         auto *usermenu = root(QStringLiteral("&Usermenu"), QStringLiteral("userMenu"));
@@ -2198,9 +2238,9 @@ private:
         });
 
         addAction(help, QStringLiteral("&About"), QStringLiteral("about"), {}, [this]() {
-            QMessageBox::about(this, QStringLiteral("ZoiteChat"), QStringLiteral(
-                "ZoiteChat\nExperimental Qt 6 frontend using the ZoiteChat IRC engine.\n\n"
-                "Use the menus to see keyboard shortcuts.\nLicensed under GPL version 2 or later."));
+            QMessageBox::about(this, QStringLiteral("hexchat-ng"), QStringLiteral(
+                "hexchat-ng\nExperimental Qt 6 frontend using the hexchat-ng IRC engine.\n\n"
+                "Copyright © 2026 Britney Lozza.\n\nUse the menus to see keyboard shortcuts.\nLicensed under GPL version 2 or later."));
         });
         customMenus_ = new CustomMenus(menuBar(), usermenu, this,
             [this](const QString &command) {
@@ -2294,6 +2334,7 @@ private:
     }
     void updateStatus()
     {
+        refreshTyping();
         QtSessionInfo info{};
         const bool valid = active_ && qt_core_session_info(active_, &info);
         const bool connected = valid && info.connected;
@@ -2891,7 +2932,7 @@ private:
     }
     QString conversationTitle(void *key) const
     {
-        QString title = QStringLiteral("ZoiteChat — ") + (conversations_.contains(key) ? conversations_.value(key).name : QStringLiteral("Qt 6"));
+        QString title = QStringLiteral("hexchat-ng — ") + (conversations_.contains(key) ? conversations_.value(key).name : QStringLiteral("Qt 6"));
         QtSessionInfo info{};
         if (!conversations_.contains(key) || !qt_core_session_info(key, &info)) return title;
         if (titleNick_ && info.nick && *info.nick) title += QStringLiteral(" — ") + QString::fromUtf8(info.nick);
@@ -2926,6 +2967,7 @@ private:
     QWidget *searchBar_ = nullptr;
     QLineEdit *search_ = nullptr;
     QCheckBox *matchCase_ = nullptr, *regexSearch_ = nullptr;
+    QLabel *typingStatus_ = nullptr;
     QLabel *searchResult_ = nullptr, *connection_ = nullptr;
     QLabel *lagStatus_ = nullptr, *queueStatus_ = nullptr;
     QProgressBar *lagMeter_ = nullptr, *queueMeter_ = nullptr;
@@ -3000,10 +3042,10 @@ void qt_fe_initialize(int *argc, char **argv)
 {
     if (!app) {
         app = new QApplication(*argc, argv);
-        app->setApplicationName(QStringLiteral("zoitechat-qt"));
+        app->setApplicationName(QStringLiteral("hexchat-ng"));
         app->setDesktopFileName(QStringLiteral("net.zoite.Zoitechat.Qt"));
-        app->setWindowIcon(QIcon::fromTheme(QStringLiteral("net.zoite.Zoitechat"), QIcon(QStringLiteral(":/zoitechat/zoitechat.png"))));
-        app->setOrganizationName(QStringLiteral("ZoiteChat"));
+        app->setWindowIcon(QIcon::fromTheme(QStringLiteral("hexchat-ng"), QIcon(QStringLiteral(":/zoitechat/zoitechat.png"))));
+        app->setOrganizationName(QStringLiteral("hexchat-ng"));
     }
     (void)ui();
 }
@@ -3082,7 +3124,7 @@ void qt_fe_open_url(const char *url)
 { if (url) QDesktopServices::openUrl(QUrl::fromUserInput(QString::fromUtf8(url))); }
 int qt_fe_confirm(const char *message)
 {
-    return QMessageBox::question(ui(), QStringLiteral("ZoiteChat"),
+    return QMessageBox::question(ui(), QStringLiteral("hexchat-ng"),
         QString::fromUtf8(message ? message : "")) == QMessageBox::Yes;
 }
 const char *qt_fe_pick_file(const char *title, const char *initial, int flags)
@@ -3100,3 +3142,6 @@ void qt_fe_customization_changed(int kind) { if (window) window->customChanged(k
 void qt_fe_menus_changed(void) { if (window) window->menusChanged(); }
 int qt_fe_is_active(void) { return window && window->isActiveWindow() ? 1 : 0; }
 }
+
+void qt_fe_typing(void *sess, const char *nick, const char *state)
+{ if (window) window->setTyping(sess, QString::fromUtf8(nick ? nick : ""), QString::fromUtf8(state ? state : "")); }

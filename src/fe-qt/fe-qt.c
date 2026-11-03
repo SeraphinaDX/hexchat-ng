@@ -36,7 +36,7 @@ static gint startup_minimize;
 
 static GOptionEntry qt_options[] = {
 #ifdef __linux__
-  { "run-as-root", 0, 0, G_OPTION_ARG_NONE, &arg_run_as_root, "Allow ZoiteChat to run as root", NULL },
+  { "run-as-root", 0, 0, G_OPTION_ARG_NONE, &arg_run_as_root, "Allow hexchat-ng to run as root", NULL },
 #endif
   { "minimize", 0, 0, G_OPTION_ARG_INT, &startup_minimize, "Begin minimized: 0 normal, 1 iconified, 2 tray", "LEVEL" },
   { "no-auto", 'a', 0, G_OPTION_ARG_NONE, &arg_dont_autoconnect, "Don't auto connect", NULL },
@@ -56,18 +56,18 @@ fe_args(int argc, char *argv[])
   GOptionContext *context = g_option_context_new(NULL);
   g_option_context_add_main_entries(context, qt_options, GETTEXT_PACKAGE);
   if (!g_option_context_parse(context, &argc, &argv, &error)) {
-    g_printerr("zoitechat-qt: %s\n", error->message);
+    g_printerr("hexchat-ng: %s\n", error->message);
     g_clear_error(&error);
     g_option_context_free(context);
     return 1;
   }
   g_option_context_free(context);
   if (startup_minimize < 0 || startup_minimize > 2) {
-    g_printerr("zoitechat-qt: --minimize must be 0, 1, or 2\n");
+    g_printerr("hexchat-ng: --minimize must be 0, 1, or 2\n");
     return 1;
   }
   if (show_version) {
-    g_print("%s %s (Qt 6)\n", PACKAGE_NAME, PACKAGE_VERSION);
+    g_print("hexchat-ng %s (Qt 6)\n", PACKAGE_VERSION);
     return 0;
   }
   if (option_cfgdir) {
@@ -287,6 +287,7 @@ void qt_core_submit(void *ptr, const char *line)
   session *sess = ptr;
   char *mutable_line;
   if (!sess || !is_session(sess) || !line || !*line) return;
+  qt_core_typing_update(sess, "");
   qt_core_activate(sess);
   mutable_line = g_strdup(line);
   handle_multiline(sess, mutable_line, TRUE, FALSE);
@@ -298,6 +299,7 @@ void qt_core_submit_literal(void *ptr, const char *line)
   session *sess = ptr;
   char *text;
   if (!sess || !is_session(sess) || !line || !*line) return;
+  qt_core_typing_update(sess, "");
   qt_core_activate(sess); text = g_strdup(line);
   handle_multiline(sess, text, TRUE, TRUE);
   g_free(text);
@@ -433,7 +435,7 @@ void fe_print_text_with_message(session *sess, char *text, time_t stamp,
 }
 void fe_set_typing(session *sess, const char *nick, const char *state)
 {
-  (void)sess; (void)nick; (void)state;
+  qt_fe_typing(sess, nick, state);
 }
 void fe_get_password(char *prompt, void *callback, void *userdata)
 {
@@ -442,7 +444,7 @@ void fe_get_password(char *prompt, void *callback, void *userdata)
 #ifdef __linux__
 void fe_root_warning(void)
 {
-  fputs("ZoiteChat refuses to run as root on Linux.\n"
+  fputs("hexchat-ng refuses to run as root on Linux.\n"
         "Run it as a normal user, or pass --run-as-root to override this protection.\n", stderr);
 }
 #endif

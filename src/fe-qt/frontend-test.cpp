@@ -68,6 +68,7 @@ void *qt_core_next_activity(void) {
 }
 int qt_core_completion_compare(void *, const char *left, const char *right) { return QString::fromUtf8(left).compare(QString::fromUtf8(right), Qt::CaseInsensitive); }
 void qt_core_activate(void *session) { activated = session; }
+void qt_core_typing_update(void *, const char *) {}
 void qt_core_submit(void *session, const char *line)
 {
     commands.append({session, QString::fromUtf8(line)});
@@ -148,8 +149,8 @@ int main(int argc, char **argv)
     for (auto *item : window->menuBar()->actions()) {
         QString text = item->text(); text.remove(QLatin1Char('&')); topMenus.append(text);
     }
-    verify(topMenus == QStringList({QStringLiteral("ZoiteChat"), QStringLiteral("View"), QStringLiteral("Server"), QStringLiteral("Usermenu"),
-           QStringLiteral("Settings"), QStringLiteral("Window"), QStringLiteral("Help")}), "original ZoiteChat top-level menus and order");
+    verify(topMenus == QStringList({QStringLiteral("hexchat-ng"), QStringLiteral("View"), QStringLiteral("Server"), QStringLiteral("Usermenu"),
+           QStringLiteral("Settings"), QStringLiteral("Window"), QStringLiteral("Help")}), "original hexchat-ng top-level menus and order");
     auto *nativeUsermenu = window->findChild<QMenu *>(QStringLiteral("userMenu"));
     verify(nativeUsermenu && !nativeUsermenu->menuAction()->isVisible(), "Usermenu follows native default of hidden");
     auto menuIds = [&](const char *name) {
@@ -162,7 +163,7 @@ int main(int argc, char **argv)
         return ids;
     };
     verify(menuIds("zoitechatMenu") == QStringList({QStringLiteral("networkList"), QStringLiteral("|"), QStringLiteral("newMenu"), QStringLiteral("|"),
-           QStringLiteral("loadPlugin"), QStringLiteral("|"), QStringLiteral("detachConversation"), QStringLiteral("closeConversation"), QStringLiteral("|"), QStringLiteral("quit")}), "ZoiteChat menu matches original complete file menu order");
+           QStringLiteral("loadPlugin"), QStringLiteral("|"), QStringLiteral("detachConversation"), QStringLiteral("closeConversation"), QStringLiteral("|"), QStringLiteral("quit")}), "hexchat-ng menu matches original complete file menu order");
     verify(menuIds("viewMenu").mid(0, 7) == QStringList({QStringLiteral("showMenu"), QStringLiteral("showTopic"), QStringLiteral("showUsers"), QStringLiteral("showUserButtons"), QStringLiteral("showChannelModes"), QStringLiteral("channelSwitcherMenu"), QStringLiteral("networkMetersMenu")}), "supported native View controls retain original order");
     verify(menuIds("networkMetersMenu") == QStringList({QStringLiteral("networkMeter0"), QStringLiteral("networkMeter1"), QStringLiteral("networkMeter2"), QStringLiteral("networkMeter3")}), "Network Meters submenu contains all native modes");
     verify(menuIds("newMenu") == QStringList({QStringLiteral("newServerTab"), QStringLiteral("newChannelTab"), QStringLiteral("newServerWindow"), QStringLiteral("newChannelWindow")}), "New submenu includes original window actions");
@@ -216,6 +217,26 @@ int main(int argc, char **argv)
     qt_fe_new_session(server, "Server", 1);
     qt_fe_new_session(channel, "#test", 0);
     qt_fe_new_session(query, "Alice", 0);
+    qt_fe_select_session(channel);
+    auto *typing = window->findChild<QLabel *>(QStringLiteral("typingStatus"));
+    qt_fe_typing(channel, "Alice", "active");
+    verify(typing && typing->text() == QStringLiteral("Alice is typing…"), "incoming active typing is visible");
+    qt_fe_typing(channel, "alice", "paused");
+    verify(typing->text() == QStringLiteral("alice has paused typing"), "typing nick matching follows IRC case mapping");
+    qt_fe_select_session(query);
+    verify(typing->text().isEmpty(), "typing state is isolated by conversation");
+    qt_fe_typing(query, "Alice", "active");
+    verify(typing->text() == QStringLiteral("Alice is typing…"), "private conversation typing is visible");
+    qt_fe_typing(query, "ALICE", "done");
+    verify(typing->text().isEmpty(), "done clears typing independent of nick case");
+    qt_fe_select_session(channel);
+    window->removeUser(channel, QStringLiteral("Alice"));
+    verify(typing->text().isEmpty(), "departing users clear typing state");
+    qt_fe_typing(channel, "Bob", "active");
+    engine[channel].connected = 0; window->connectionChanged();
+    verify(typing->text().isEmpty(), "disconnect clears typing state");
+    engine[channel].connected = 1;
+    qt_fe_select_session(server);
     auto setNative = [&](const char *key, const char *value) { for (auto &row : PreferencesTestEngine::rows) if (QByteArray(row.key) == key) qstrncpy(row.value, value, sizeof(row.value)); };
     auto *switcher = window->findChild<QTreeWidget *>();
     setNative("gui_tab_icons", "1"); setNative("gui_tab_small", "0"); qt_fe_gui_control(server, 8, 0);
@@ -991,6 +1012,10 @@ int main(int argc, char **argv)
     qt_fe_gui_control(channel, 7, 1);
     auto *detached = static_cast<ConversationWindow *>(window->findChild<QMainWindow *>(QStringLiteral("detachedConversation")));
     verify(detached && !detached->chat->palette().brush(QPalette::Base).texture().isNull(), "detached transcript inherits configured background");
+    qt_fe_typing(channel, "Alice", "active");
+    verify(detached && detached->typingStatus->text() == QStringLiteral("Alice is typing…"), "detached conversation displays its typing state");
+    qt_fe_typing(channel, "Alice", "done");
+    verify(detached && detached->typingStatus->text().isEmpty(), "detached conversation clears typing state");
     verify(detached && detached->isVisible() && detached->input->text() == QStringLiteral("detached draft"), "detach preserves draft in independent window");
     nativeActivityQueue = {query};
     const auto beforeDetachedAuto = activated;

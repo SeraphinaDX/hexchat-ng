@@ -1,5 +1,5 @@
 /*
- * Qt 6 network manager using the existing ZoiteChat servlist configuration.
+ * Qt 6 network manager using the existing hexchat-ng servlist configuration.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "networkdialog.h"
@@ -72,7 +72,7 @@ public:
         auto *identityPage = new QWidget(tabs);
         auto *identityForm = new QFormLayout(identityPage);
         globalIdentity_ = new QCheckBox(
-            QStringLiteral("Use global ZoiteChat identity settings"), identityPage);
+            QStringLiteral("Use global hexchat-ng identity settings"), identityPage);
         nick_ = new QLineEdit(identityPage);
         nick2_ = new QLineEdit(identityPage);
         user_ = new QLineEdit(identityPage);
@@ -100,7 +100,7 @@ public:
         identityForm->addRow(QStringLiteral("Authentication method:"), auth_);
         identityForm->addRow(QStringLiteral("Password:"), password_);
         auto *warning = new QLabel(
-            QStringLiteral("ZoiteChat's legacy servlist.conf stores authentication passwords "
+            QStringLiteral("hexchat-ng's legacy servlist.conf stores authentication passwords "
                            "as plaintext. Protect your configuration directory."), identityPage);
         warning->setWordWrap(true);
         identityForm->addRow(warning);
@@ -259,11 +259,11 @@ public:
     explicit NetworkManager(QWidget *parent) : QDialog(parent)
     {
         setObjectName(QStringLiteral("networkManager"));
-        setWindowTitle(QStringLiteral("ZoiteChat — Network List"));
+        setWindowTitle(QStringLiteral("hexchat-ng — Network List"));
         resize(650, 520);
         auto *layout = new QVBoxLayout(this);
         auto *intro = new QLabel(
-            QStringLiteral("Manage saved IRC networks. Changes are saved to ZoiteChat's "
+            QStringLiteral("Manage saved IRC networks. Changes are saved to hexchat-ng's "
                            "existing servlist.conf file."), this);
         intro->setWordWrap(true);
         layout->addWidget(intro);

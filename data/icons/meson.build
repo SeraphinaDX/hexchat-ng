@@ -9,3 +9,7 @@ install_data(
   rename: 'net.zoite.Zoitechat.svg',
   install_dir: join_paths(icondir, 'scalable/apps')
 )
+
+# hexchat-ng Qt application identity.
+install_data('hexchat.png', rename: 'hexchat-ng.png', install_dir: join_paths(icondir, '48x48/apps'))
+install_data('hexchat.svg', rename: 'hexchat-ng.svg', install_dir: join_paths(icondir, 'scalable/apps'))

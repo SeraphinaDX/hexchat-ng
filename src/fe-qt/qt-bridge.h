@@ -10,6 +10,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+void qt_core_typing_update(void *session, const char *text);
+void qt_fe_typing(void *session, const char *nick, const char *state);
 void qt_fe_initialize(int *argc, char **argv);
 int qt_fe_run(void);
 void qt_fe_quit(void);

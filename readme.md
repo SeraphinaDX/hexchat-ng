@@ -1,37 +1,16 @@
-<div align="center">
-  <img src="data/icons/zoitechat.svg" height="230">
-  
-[![Flatpak Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/flatpak-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/flatpak-build.yml)
-[![AppImage Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/appimage-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/appimage-build.yml)
-[![Windows Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/windows-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/windows-build.yml)
-[![Manjaro Package Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/manjaro-package-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/manjaro-package-build.yml)
+# hexchat-ng
 
-[![Version][github-version-img]][github-version-uri] [![Downloads][github-downloads-img]][github-downloads-uri] [![Size][github-size-img]][github-size-img] [![Last Commit][github-commit-img]][github-commit-img] [![Contributors][contribs-all-img]](#contributors-)
+<img src="data/icons/hexchat.svg" height="180" alt="hexchat-ng icon">
 
-[![View Official Documentation](https://img.shields.io/badge/View_Official_Documentation-526CFE?style=for-the-badge&logo=MaterialForMkDocs&logoColor=white)](https://docs.zoitechat.org)
+hexchat-ng is an IRC client with a Qt 6 frontend built on the ZoiteChat/HexChat
+C engine. This fork is beginning its rebrand from ZoiteChat. Existing core
+configuration paths and plugin symbols are retained for compatibility.
 
-  </div>
+See the [Qt build and usage guide](src/fe-qt/README.md) for the `hexchat-ng`
+executable, dependencies and tests. The Qt frontend includes typing indicators
+for channels and private conversations.
 
-<!-- Badge reference definitions -->
-[github-version-img]: https://img.shields.io/github/v/release/ZoiteChat/zoitechat?display_name=tag&sort=semver
-[github-version-uri]: https://github.com/ZoiteChat/zoitechat/releases/latest
-
-[github-downloads-img]: https://img.shields.io/github/downloads/ZoiteChat/zoitechat/total
-[github-downloads-uri]: https://github.com/ZoiteChat/zoitechat/releases
-
-[github-size-img]: https://img.shields.io/github/repo-size/ZoiteChat/zoitechat
-[github-size-uri]: https://github.com/ZoiteChat/zoitechat
-
-[github-commit-img]: https://img.shields.io/github/last-commit/ZoiteChat/zoitechat
-[github-commit-uri]: https://github.com/ZoiteChat/zoitechat/commits
-
-[contribs-all-img]: https://img.shields.io/github/contributors/ZoiteChat/zoitechat
-
-<br />
-<br />
-
-
-ZoiteChat is a GTK3 IRC client based on HexChat, available for Windows and UNIX-like operating systems.  
+Copyright © 2026 Britney Lozza. Existing contributor notices are retained below.
 
 Features include HexChat-compatible Python, Perl and Lua scripting support, a plugin API,
 multiple server/channel windows, spell checking, multiple authentication methods including SASL,

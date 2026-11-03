@@ -23,6 +23,8 @@ QIcon fileIcon(const QString &path)
 }
 QIcon chatIcon(bool unread)
 {
+    QIcon imported(unread ? QStringLiteral(":/zoitechat/tray_message.png") : QStringLiteral(":/zoitechat/zoitechat.png"));
+    if (!imported.isNull()) return imported;
     QPixmap pixmap(32, 32); pixmap.fill(Qt::transparent);
     QPainter painter(&pixmap); painter.setRenderHint(QPainter::Antialiasing);
     painter.setPen(Qt::NoPen); painter.setBrush(unread ? QColor(220, 115, 30) : QColor(45, 135, 165));
@@ -38,14 +40,14 @@ DesktopIntegration::DesktopIntegration(QWidget *window, std::function<void(void 
     setObjectName(QStringLiteral("desktopIntegration"));
     clock_.start();
     tray_ = new QSystemTrayIcon(chatIcon(false), this);
-    tray_->setToolTip(QStringLiteral("ZoiteChat"));
+    tray_->setToolTip(QStringLiteral("hexchat-ng"));
     flashTimer_ = new QTimer(this); flashTimer_->setObjectName(QStringLiteral("trayFlashTimer"));
     connect(flashTimer_, &QTimer::timeout, this, [this]() {
         if (!flashRequested_) return;
         secondFrame_ = !secondFrame_; tray_->setIcon(secondFrame_ ? secondIcon_ : firstIcon_);
     });
     menu_ = new QMenu(window);
-    menu_->addAction(QStringLiteral("Show / Hide ZoiteChat"), this, [this]() { toggleWindow(); });
+    menu_->addAction(QStringLiteral("Show / Hide hexchat-ng"), this, [this]() { toggleWindow(); });
     menu_->addAction(QStringLiteral("Go to Latest Notification"), this, [this]() { restore(); if (latest_ && focus_) focus_(latest_); });
     menu_->addSeparator();
     auto *away = menu_->addAction(QStringLiteral("Away on All Servers"), this, [this]() { if (awayRequested) awayRequested(true); }); away->setObjectName(QStringLiteral("trayAway"));
@@ -101,7 +103,7 @@ bool DesktopIntegration::alert(void *session, const QString &title, const QStrin
     const qint64 now = clock_.elapsed();
     if (last_.contains(session) && now - last_.value(session) < 10000) return false;
     last_.insert(session, now);
-    const QString heading = QStringLiteral("ZoiteChat — ") + title.left(100);
+    const QString heading = QStringLiteral("hexchat-ng — ") + title.left(100);
     const QString body = previews_ ? text.simplified().left(240) :
         mention ? QStringLiteral("You were mentioned.") : privateMessage ? QStringLiteral("New private message.") : QStringLiteral("New channel message.");
     if (notificationAccepted) notificationAccepted(heading, body);
@@ -143,7 +145,7 @@ bool DesktopIntegration::setFlashingIcons(const QString &first, const QString &s
     if (tray_->isVisible() && trayRequested_) flashTimer_->start();
     return true;
 }
-void DesktopIntegration::setToolTip(const QString &text) { tray_->setToolTip(text.isEmpty() ? QStringLiteral("ZoiteChat") : text.left(250)); }
+void DesktopIntegration::setToolTip(const QString &text) { tray_->setToolTip(text.isEmpty() ? QStringLiteral("hexchat-ng") : text.left(250)); }
 void DesktopIntegration::forget(void *session) { last_.remove(session); if (latest_ == session) latest_ = nullptr; }
 void DesktopIntegration::markRead(void *session) { if (latest_ == session) latest_ = nullptr; }
 bool DesktopIntegration::canHide() const { return tray_->isVisible() && QSystemTrayIcon::isSystemTrayAvailable(); }

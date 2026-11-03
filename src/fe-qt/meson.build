@@ -18,8 +18,8 @@ qt_spellchecker_test = executable('qt-spellchecker-test',
   sources: ['spellchecker-test.cpp', 'chatinput.cpp', 'irclineedit.cpp', 'ircformat.cpp'],
   dependencies: [qt6_widgets, qt_spellchecker_dep])
 test('qt-spellchecker', qt_spellchecker_test, env: ['QT_QPA_PLATFORM=offscreen'])
-zoitechat_qt = executable('zoitechat-qt',
-  sources: [qt_resources, 'alerts-bridge.c', 'activity-bridge.c', 'keypress-bridge.c', 'command-bridge.c', 'completion-bridge.c', 'preferences-bridge.c', 'fe-qt.c', 'qtfrontend.cpp', 'chatbackground.cpp', 'buffersearch.cpp', 'ircformat.cpp', 'irclineedit.cpp', 'chatinput.cpp', 'nicklist.cpp',
+zoitechat_qt = executable('hexchat-ng',
+  sources: [qt_resources, 'alerts-bridge.c', 'activity-bridge.c', 'keypress-bridge.c', 'command-bridge.c', 'completion-bridge.c', 'preferences-bridge.c', 'fe-qt.c', 'typing-bridge.c', 'qtfrontend.cpp', 'chatbackground.cpp', 'buffersearch.cpp', 'ircformat.cpp', 'irclineedit.cpp', 'chatinput.cpp', 'nicklist.cpp',
             'network-bridge.c', 'networkdialog.cpp', 'tools-bridge.c', 'irctools.cpp', 'moderation-bridge.c', 'moderation.cpp', 'desktopintegration.cpp', 'urlhistory.cpp', 'friends-bridge.c', 'friends.cpp', 'pastepreview.cpp', 'customization-bridge.c', 'customization.cpp', 'textevents-bridge.c', 'textevents.cpp', 'paletteeditor.cpp', 'addons-bridge.c', 'addons.cpp', 'conversationoptions-bridge.c', 'transfers-bridge.c', 'transfers.cpp', 'characterchart.cpp', 'conversationoptions.cpp', 'keybindings.cpp'],
   dependencies: [zoitechat_common_dep, qt6_widgets, qt_spellchecker_dep, qt_menumarkup_dep],
   include_directories: config_h_include,
@@ -278,3 +278,12 @@ test('qt-menumarkup', qt_menumarkup_test, env: ['QT_QPA_PLATFORM=offscreen'])
 
 qt_irclineedit_test = executable('qt-irclineedit-test', sources: ['irclineedit-test.cpp', 'irclineedit.cpp', 'ircformat.cpp'], dependencies: [qt6_widgets])
 test('qt-irclineedit', qt_irclineedit_test, env: ['QT_QPA_PLATFORM=offscreen'])
+
+qt_typing_bridge_test = executable('qt-typing-bridge-test',
+  sources: ['typing-bridge-test.c', 'typing-bridge.c'],
+  dependencies: [dependency('glib-2.0')],
+  include_directories: config_h_include,
+  c_args: ['-DHAVE_CONFIG_H'],
+  override_options: ['c_std=gnu11'],
+)
+test('qt-typing-bridge', qt_typing_bridge_test)

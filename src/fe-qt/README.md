@@ -1,13 +1,17 @@
-# Experimental Qt 6 frontend
+# hexchat-ng Qt 6 frontend
 
-`zoitechat-qt` is a separate Qt 6 Widgets application using ZoiteChat's existing
+`hexchat-ng` is a separate Qt 6 Widgets application using ZoiteChat's existing
 C core, IRC commands, configuration, networks and plugin API. The GTK frontend
 remains available and is still the default build.
 
 Imported from [SeraphinaDX/hexchat-ng](https://github.com/SeraphinaDX/hexchat-ng)
 at commit `91b9a7f579a9328abf60713a8d473ef8c24e092f`. The imported code retains
 its GPL-2.0-or-later license notices. The integration adapts core headers, plugin
-symbols, application identity, paths and icons to ZoiteChat.
+symbols and configuration paths to ZoiteChat. The fork now uses hexchat-ng
+branding and the icons from that repository at the same commit. Core ABI and
+configuration filenames remain compatible with ZoiteChat.
+
+Copyright © 2026 Britney Lozza.
 
 ## Build
 
@@ -21,7 +25,7 @@ For a Qt-only build without plugins:
 ```sh
 meson setup build-qt -Dqt-frontend=true -Dgtk-frontend=false -Dplugin=false
 meson compile -C build-qt
-./build-qt/src/fe-qt/zoitechat-qt
+./build-qt/src/fe-qt/hexchat-ng
 ```
 
 Leave `gtk-frontend` enabled to build both applications. C++ and Qt dependencies
@@ -39,7 +43,7 @@ supply `-Dpublic-suffix-list=/path/to/public_suffix_list.dat`.
 
 The application shares ZoiteChat's normal configuration. Use
 `--cfgdir /path/to/config` for an isolated profile and `--no-auto` to disable
-automatic connections. Use **ZoiteChat > Network List** to manage saved networks,
+automatic connections. Use **hexchat-ng > Network List** to manage saved networks,
 or enter `/server` and other existing IRC commands in the input box.
 
 The frontend includes channel and private conversations, network management,
@@ -48,8 +52,12 @@ search, notifications, tray integration, DCC transfers, add-on management,
 custom menus and keybindings. See [FEATURE-PARITY.md](FEATURE-PARITY.md) for the
 imported HexChat feature inventory.
 
-ZoiteChat-specific typing indicators and interactive reply metadata are not yet
-displayed; messages appear as ordinary text. Qt does not persist the GTK theme
+Typing indicators show active and paused users in each conversation, including
+detached windows. Notifications expire after 6 seconds (active) or 30 seconds
+(paused), and clear on messages, departure or disconnect. Editing message text
+sends throttled typing notifications on servers supporting message tags and
+allowing the typing client tag. Commands do not advertise typing.
+Interactive reply metadata is not yet displayed; messages appear as ordinary text. Qt does not persist the GTK theme
 when saving preferences. Native desktop, tray and platform packaging behavior
 still require testing on each target desktop. Existing GTK packaging scripts
 continue to package the GTK application; this change adds a Meson-installed Qt

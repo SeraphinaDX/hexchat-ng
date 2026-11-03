@@ -1,5 +1,5 @@
 <RCC><qresource prefix="/zoitechat">
-<file alias="zoitechat.png">../../data/icons/zoitechat.png</file>
+<file alias="zoitechat.png">../../data/icons/hexchat.png</file>
 <file alias="ulist_voice.png">../../data/icons/ulist_voice.png</file>
 <file alias="ulist_halfop.png">../../data/icons/ulist_halfop.png</file>
 <file alias="ulist_op.png">../../data/icons/ulist_op.png</file>
@@ -10,4 +10,7 @@
 <file alias="tree_channel.png">../../data/icons/tree_channel.png</file>
 <file alias="tree_dialog.png">../../data/icons/tree_dialog.png</file>
 <file alias="tree_util.png">../../data/icons/tree_util.png</file>
+<file alias="tray_message.png">../../data/icons/tray_message.png</file>
+<file alias="tray_highlight.png">../../data/icons/tray_highlight.png</file>
+<file alias="tray_fileoffer.png">../../data/icons/tray_fileoffer.png</file>
 </qresource></RCC>

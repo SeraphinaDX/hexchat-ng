@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     desktop.setUnread(false); desktop.setToolTip(QStringLiteral("Custom tooltip"));
     verify(parent.findChild<QSystemTrayIcon *>()->toolTip() == QStringLiteral("Custom tooltip"), "core tooltip override");
     desktop.setToolTip(QString());
-    verify(parent.findChild<QSystemTrayIcon *>()->toolTip() == QStringLiteral("ZoiteChat"), "empty tooltip restores default");
+    verify(parent.findChild<QSystemTrayIcon *>()->toolTip() == QStringLiteral("hexchat-ng"), "empty tooltip restores default");
     int trayOnly, ordinary;
     desktop.configure(false, false, true, false); desktop.setUnread(false);
     auto *policyTray = parent.findChild<QSystemTrayIcon *>(); const auto quietIcon = policyTray->icon().cacheKey();

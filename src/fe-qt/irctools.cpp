@@ -415,7 +415,7 @@ void qt_fe_prompt_bool(const char *title, const char *prompt, void (*callback)(i
 static void promptString(const char *prompt, const char *initial, void (*callback)(int, char *, void *), void *data, bool password)
 {
     auto *dialog = new QInputDialog(toolsParent); dialog->setAttribute(Qt::WA_DeleteOnClose);
-    dialog->setWindowTitle(QStringLiteral("ZoiteChat")); dialog->setLabelText(QString::fromUtf8(prompt ? prompt : ""));
+    dialog->setWindowTitle(QStringLiteral("hexchat-ng")); dialog->setLabelText(QString::fromUtf8(prompt ? prompt : ""));
     dialog->setTextValue(QString::fromUtf8(initial ? initial : ""));
     if (password) dialog->setTextEchoMode(QLineEdit::Password);
     const auto value = std::make_shared<QString>(dialog->textValue());
@@ -433,7 +433,7 @@ static void promptString(const char *prompt, const char *initial, void (*callbac
 void qt_fe_prompt_integer(const char *prompt, int initial, void (*callback)(int, int, void *), void *data)
 {
     auto *dialog = new QInputDialog(toolsParent); dialog->setAttribute(Qt::WA_DeleteOnClose);
-    dialog->setWindowTitle(QStringLiteral("ZoiteChat")); dialog->setLabelText(QString::fromUtf8(prompt ? prompt : ""));
+    dialog->setWindowTitle(QStringLiteral("hexchat-ng")); dialog->setLabelText(QString::fromUtf8(prompt ? prompt : ""));
     dialog->setInputMode(QInputDialog::IntInput); dialog->setIntRange(INT_MIN, INT_MAX); dialog->setIntValue(initial);
     const auto value = std::make_shared<int>(initial);
     QObject::connect(dialog, &QInputDialog::intValueChanged, dialog, [value](int number) { *value = number; });
