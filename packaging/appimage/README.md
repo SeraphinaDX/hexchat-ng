@@ -1,4 +1,12 @@
-# AppImage build
+# AppImage runtime helpers
+
+The runtime bundling helpers in this directory can be reused for a Qt AppImage.
+`AppRun` launches `hexchat-ng`; the packager must bundle Qt and its platform
+plugins. The former GTK AppImage workflow has been retired to
+[legacy-gtk/workflows](../legacy-gtk/workflows). There is currently no active
+AppImage release workflow.
+
+The rest of this document records the former Python runtime packaging work.
 
 The workflow stays on Ubuntu 22.04 so updating Python does not also raise the
 AppImage's glibc requirement. Python is built separately from a checked source

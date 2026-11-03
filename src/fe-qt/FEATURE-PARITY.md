@@ -2,7 +2,7 @@
 
 Target: the Qt6 port provides the user-facing capabilities of the original
 ZoiteChat frontend while retaining the C engine. The goal is not complete.
-Reference implementations are `src/fe-gtk/menu.c`, `setup.c`, `fkeys.c`, and
+The historical reference implementations were GTK `menu.c`, `setup.c`, `fkeys.c`, and
 `src/common/fe.h`. Source presence alone does not prove runtime parity.
 
 | Area | Current evidence | Remaining completion gate |

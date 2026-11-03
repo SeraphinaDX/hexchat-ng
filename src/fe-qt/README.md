@@ -1,8 +1,8 @@
 # hexchat-ng Qt 6 frontend
 
-`hexchat-ng` is a separate Qt 6 Widgets application using ZoiteChat's existing
-C core, IRC commands, configuration, networks and plugin API. The GTK frontend
-remains available and is still the default build.
+`hexchat-ng` uses Qt 6 Widgets for its graphical interface and the
+ZoiteChat/HexChat C core for IRC commands, configuration, networks and plugins.
+Qt is the default and only graphical frontend; the GTK frontend has been removed.
 
 Imported from [SeraphinaDX/hexchat-ng](https://github.com/SeraphinaDX/hexchat-ng)
 at commit `91b9a7f579a9328abf60713a8d473ef8c24e092f`. The imported code retains
@@ -20,21 +20,26 @@ and resource compiler), Pango/Cairo 1.44 or newer, GLib/GIO development tools
 (including `glib-genmarshal`), gettext, libarchive, OpenSSL and the normal
 ZoiteChat build dependencies. Enchant 2 enables optional spell checking.
 
-For a Qt-only build without plugins:
+To build without optional plugins:
 
 ```sh
-meson setup build-qt -Dqt-frontend=true -Dgtk-frontend=false -Dplugin=false
+meson setup build-qt -Dplugin=false
 meson compile -C build-qt
 ./build-qt/src/fe-qt/hexchat-ng
 ```
 
-Leave `gtk-frontend` enabled to build both applications. C++ and Qt dependencies
-are only required when `qt-frontend` is enabled. To disable spell checking, use
-`-Dqt-spellchecking=disabled`.
+To disable spell checking, use `-Dqt-spellchecking=disabled`. The optional text
+frontend can be built with `-Dtext-frontend=true`. For a text-only build, add
+`-Dqt-frontend=false`.
+
+For builds created before the GTK removal, use a fresh build directory such as
+`build-qt`; old caches can contain removed options. Remove `-Dgtk-frontend`,
+`-Dappindicator` and `-Dmac-integration` from saved build commands.
 
 To build with plugins, enable `-Dplugin=true` and select the existing `with-*`
-options for the dependencies you have installed. FiSHLiM's key manager uses GTK
-widgets; disable it with `-Dwith-fishlim=false` for a Qt-only installation.
+options for the dependencies you have installed. FiSHLiM is disabled by default;
+its optional plugin still uses GTK widgets for its key manager and requires GTK
+if explicitly enabled. It is separate from the removed GTK application.
 
 The build generates URL rules using the public suffix list. For offline builds,
 supply `-Dpublic-suffix-list=/path/to/public_suffix_list.dat`.
@@ -57,11 +62,11 @@ detached windows. Notifications expire after 6 seconds (active) or 30 seconds
 (paused), and clear on messages, departure or disconnect. Editing message text
 sends throttled typing notifications on servers supporting message tags and
 allowing the typing client tag. Commands do not advertise typing.
-Interactive reply metadata is not yet displayed; messages appear as ordinary text. Qt does not persist the GTK theme
-when saving preferences. Native desktop, tray and platform packaging behavior
-still require testing on each target desktop. Existing GTK packaging scripts
-continue to package the GTK application; this change adds a Meson-installed Qt
-executable and desktop launcher.
+Interactive reply metadata is not yet displayed; messages appear as ordinary
+text. GTK theme settings remain in the shared configuration for compatibility.
+The build installs the `hexchat-ng` executable, desktop launcher, app metadata,
+icons and manual page. The former GTK platform packagers are archived under
+[packaging/legacy-gtk](../../packaging/legacy-gtk/README.md) for porting reference.
 
 ## Tests
 

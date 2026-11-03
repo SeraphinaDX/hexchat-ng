@@ -4,49 +4,11 @@ mimedir = join_paths(get_option('datadir'), 'mime', 'packages')
 desktop_utils = find_program('desktop-file-validate', required: false)
 appstreamcli = find_program('appstreamcli', required: false)
 
-if get_option('gtk-frontend')
-  if get_option('install-appdata')
-    zoitechat_appdata = i18n.merge_file(
-      input: 'net.zoite.Zoitechat.appdata.xml.in',
-      output: 'net.zoite.Zoitechat.appdata.xml',
-      po_dir: '../../po',
-      install: true,
-      install_dir: metainfodir
-    )
-
-    if appstreamcli.found()
-      test('Validate net.zoite.Zoitechat.appdata.xml', appstreamcli,
-        args: ['validate', zoitechat_appdata]
-      )
-    endif
-  endif
-
-  desktop_conf = configuration_data()
-  if dbus_dep.found()
-    desktop_conf.set('exec_command', 'zoitechat --existing %U')
-  else
-    desktop_conf.set('exec_command', 'zoitechat %U')
-  endif
-
-  desktop_file = configure_file(
-    input: 'net.zoite.Zoitechat.desktop.in.in',
-    output: 'net.zoite.Zoitechat.desktop.in',
-    configuration: desktop_conf
-  )
-
-  zoitechat_desktop = i18n.merge_file(
-    input: desktop_file,
-    output: 'net.zoite.Zoitechat.desktop',
-    po_dir: '../../po',
-    type: 'desktop',
-    install: true,
-    install_dir: appdir
-  )
-
-  if desktop_utils.found()
-    test('Validate net.zoite.Zoitechat.desktop', desktop_utils,
-      args: [zoitechat_desktop]
-    )
+if get_option('qt-frontend') and get_option('install-appdata')
+  install_data('net.zoite.Zoitechat.Qt.metainfo.xml', install_dir: metainfodir)
+  if appstreamcli.found()
+    test('Validate hexchat-ng appdata', appstreamcli,
+      args: ['validate', '--no-net', files('net.zoite.Zoitechat.Qt.metainfo.xml')])
   endif
 endif
 

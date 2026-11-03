@@ -30,7 +30,7 @@ directory; Windows resolves it relative to the executable. AppImage sets
 `ZOITECHAT_EMOJI_FONT` to its own copy. For an uninstalled development build:
 
 ```sh
-ZOITECHAT_EMOJI_FONT="$PWD/data/fonts/NotoColorEmoji.ttf" build/src/fe-gtk/zoitechat
+ZOITECHAT_EMOJI_FONT="$PWD/data/fonts/NotoColorEmoji.ttf" build/src/fe-qt/hexchat-ng
 ```
 
 An unexpectedly missing or unloadable bundled font logs a warning and retains

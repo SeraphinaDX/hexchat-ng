@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>net.zoite.Zoitechat.Qt</id>
+  <name>hexchat-ng</name>
+  <summary>IRC client with a Qt 6 interface</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0+</project_license>
+  <developer id="io.github.seraphinadx"><name>Britney Lozza</name></developer>
+  <launchable type="desktop-id">net.zoite.Zoitechat.Qt.desktop</launchable>
+  <description>
+    <p>hexchat-ng is an IRC client with a Qt 6 interface, built on the
+    ZoiteChat and HexChat IRC engine.</p>
+    <p>Chat on multiple networks, use typing indicators, search conversations,
+    transfer files, and customize your interface and scripts.</p>
+  </description>
+  <url type="homepage">https://github.com/SeraphinaDX/zoitechat-qt</url>
+  <url type="bugtracker">https://github.com/SeraphinaDX/zoitechat-qt/issues</url>
+  <provides><binary>hexchat-ng</binary></provides>
+  <content_rating type="oars-1.1"/>
+</component>

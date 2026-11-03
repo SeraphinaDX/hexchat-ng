@@ -8,7 +8,6 @@ Config files are stored as plaintext files (which shouldn't be edited by hand). 
 
 - Windows: :file:`%APPDATA%\\ZoiteChat`
 - Unix: :file:`~/.config/zoitechat`
-- Flatpak: :file:`~/.var/app/io.github.Hexchat/config/zoitechat`
 - Snap: :file:`~/snap/zoitechat/current/.config/zoitechat`
 
 .. note::

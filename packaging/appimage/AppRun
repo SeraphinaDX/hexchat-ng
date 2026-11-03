@@ -6,19 +6,6 @@ APPDIR="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
 export PATH="$APPDIR/usr/bin:${PATH:-/usr/bin:/bin}"
 export LD_LIBRARY_PATH="$APPDIR/usr/lib:$APPDIR/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
-export GTK_EXE_PREFIX="$APPDIR/usr"
-export GTK_DATA_PREFIX="$APPDIR/usr"
-gtk_path_entries=""
-if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/gtk-3.0" ]; then
-  gtk_path_entries="$APPDIR/usr/lib/x86_64-linux-gnu/gtk-3.0"
-fi
-if [ -d "$APPDIR/usr/lib/gtk-3.0" ]; then
-  gtk_path_entries="${gtk_path_entries:+$gtk_path_entries:}$APPDIR/usr/lib/gtk-3.0"
-fi
-if [ -n "$gtk_path_entries" ]; then
-  export GTK_PATH="$gtk_path_entries${GTK_PATH:+:$GTK_PATH}"
-fi
-
 if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/zoitechat/plugins" ]; then
   export ZOITECHAT_LIBDIR="$APPDIR/usr/lib/x86_64-linux-gnu/zoitechat/plugins"
 elif [ -d "$APPDIR/usr/lib/zoitechat/plugins" ]; then
@@ -41,8 +28,6 @@ if [ -n "$gio_module_dir" ]; then
   export GIO_MODULE_DIR="$gio_module_dir"
   export GIO_EXTRA_MODULES="$gio_module_dir"
 fi
-
-unset GTK_MODULES
 
 perl5lib_entries=""
 for dir in \
@@ -74,16 +59,6 @@ export SSL_CERT_FILE="${SSL_CERT_FILE:-$APPDIR/etc/ssl/certs/ca-certificates.crt
 export SSL_CERT_DIR="${SSL_CERT_DIR:-$APPDIR/etc/ssl/certs}"
 export CURL_CA_BUNDLE="${CURL_CA_BUNDLE:-$SSL_CERT_FILE}"
 
-# Prefer Wayland if the session provides it, but keep X11 fallback.
-# Don't override if the user already set GDK_BACKEND explicitly.
-if [ -z "${GDK_BACKEND:-}" ]; then
-  if [ -n "${WAYLAND_DISPLAY:-}" ] || [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
-    export GDK_BACKEND="wayland,x11"
-  else
-    export GDK_BACKEND="x11"
-  fi
-fi
-
 # linuxdeploy's outer AppRun has already sourced its generated hooks.
 
-exec "$APPDIR/usr/bin/zoitechat" "$@"
+exec "$APPDIR/usr/bin/hexchat-ng" "$@"

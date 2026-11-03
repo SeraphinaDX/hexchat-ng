@@ -25,8 +25,8 @@ endif
 dbus_conf = configuration_data()
 dbus_conf.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
 dbus_conf.set('service_name', dbus_service_name)
-# Activate the Qt executable when GTK is absent from a Qt-only installation.
-dbus_conf.set('frontend', not get_option('gtk-frontend') and get_option('qt-frontend') ? 'zoitechat-qt' : 'zoitechat')
+# Activate the installed graphical application.
+dbus_conf.set('frontend', get_option('qt-frontend') ? 'hexchat-ng' : 'zoitechat-text')
 configure_file(
   input: 'org.zoitechat.service.service.in',
   output: dbus_output_file,

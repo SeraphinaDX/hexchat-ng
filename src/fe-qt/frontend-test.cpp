@@ -144,7 +144,7 @@ int main(int argc, char **argv)
     window->showNormal(); action("trayEnabled")->setChecked(true);
     PreferencesTestEngine::saves = 0;
     verify(app->desktopFileName() == QStringLiteral("net.zoite.Zoitechat.Qt") && !app->windowIcon().isNull(), "desktop identity matches the installed Qt launcher and has an embedded icon fallback");
-    // Compare the supported menu structure with fe-gtk/menu.c.
+    // Check the traditional menu structure.
     QStringList topMenus;
     for (auto *item : window->menuBar()->actions()) {
         QString text = item->text(); text.remove(QLatin1Char('&')); topMenus.append(text);

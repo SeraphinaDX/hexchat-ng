@@ -1,0 +1,30 @@
+.TH HEXCHAT-NG "1" "November 2026" "hexchat-ng @VERSION@" "User Commands"
+.SH NAME
+hexchat-ng \- IRC client with a Qt 6 interface
+.SH SYNOPSIS
+.B hexchat-ng
+[OPTION...] [URL...]
+.SH OPTIONS
+.TP
+.B \-h, \-\-help
+Show command line options.
+.TP
+.B \-a, \-\-no-auto
+Do not connect to saved networks automatically.
+.TP
+.B \-d, \-\-cfgdir=PATH
+Use a separate configuration directory.
+.TP
+.B \-n, \-\-no-plugins
+Do not load plugins automatically.
+.TP
+.B \-u, \-\-configdir
+Print the configuration directory.
+.TP
+.B \-v, \-\-version
+Print the application version.
+.TP
+.B \-\-minimize=LEVEL
+Start normally (0), minimized (1), or in the tray (2).
+.SH AUTHOR
+Copyright 2026 Britney Lozza and the ZoiteChat, HexChat and X-Chat contributors.

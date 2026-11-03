@@ -1,9 +1,8 @@
 /*
- * ZoiteChat: provisional Qt 6 frontend implementation.
+ * hexchat-ng: Qt 6 frontend implementation.
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * The C engine continues to own sessions, sockets, and plugin contexts.
- * Functionality not yet in this first milestone is deliberately marked.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -343,8 +342,7 @@ void qt_core_set_topic(void *ptr, const char *topic)
   sess->server->p_topic(sess->server, sess->channel, *topic ? (char *)topic : NULL);
 }
 
-/* These callbacks are intentionally incomplete in milestone one.
- * The Qt UI is a working chat/command prototype, NOT GTK feature parity. */
+/* Frontend callbacks used by the IRC core. */
 void fe_add_rawlog(server *serv, char *text, int len, int outbound)
 { qt_fe_rawlog(serv, text, len, outbound); }
 void fe_update_mode_buttons(session *sess, char mode, char sign)

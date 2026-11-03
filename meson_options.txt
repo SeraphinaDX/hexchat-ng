@@ -1,7 +1,4 @@
 # Applications
-option('gtk-frontend', type: 'boolean',
-  description: 'Main graphical interface'
-)
 option('text-frontend', type: 'boolean', value: false,
   description: 'Text interface (not generally useful)'
 )
@@ -19,17 +16,9 @@ option('dbus', type: 'feature', value: 'auto',
 option('libcanberra', type: 'feature', value: 'auto',
   description: 'Support for sound alerts, Unix only'
 )
-option('appindicator', type: 'feature', value: 'auto',
-  description: 'Use Ayatana/AppIndicator-based tray backend for GTK frontend (non-Windows only)'
-)
-
-# macOS only; ignored by other platforms.
-option('mac-integration', type: 'feature', value: 'auto',
-  description: 'Native macOS menu bar, Dock and application lifecycle')
-
 # Install options
 option('dbus-service-use-appid', type: 'boolean', value: false,
-  description: 'Rename dbus service to match app-id, required for Flatpak'
+  description: 'Rename the D-Bus service to match the application ID'
 )
 option('install-appdata', type: 'boolean',
   description: 'Install appdata files for app stores'
@@ -54,7 +43,7 @@ option('with-checksum', type: 'boolean',
 option('with-exec', type: 'boolean',
   description: '/exec plugin, Windows only'
 )
-option('with-fishlim', type: 'boolean',
+option('with-fishlim', type: 'boolean', value: false,
   description: 'Fish encryption plugin, requires openssl'
 )
 option('with-lua', type: 'string', value: 'lua-5.4',
@@ -81,5 +70,5 @@ option('public-suffix-list', type: 'string', value: '',
   description: 'Path to a local public_suffix_list.dat to generate the URL detection rules from instead of downloading it'
 )
 
-option('qt-frontend', type: 'boolean', value: false, description: 'Qt 6 graphical frontend (zoitechat-qt)')
+option('qt-frontend', type: 'boolean', value: true, description: 'Main graphical interface (hexchat-ng)')
 option('qt-spellchecking', type: 'feature', value: 'auto', description: 'Enchant spell checking in the Qt message input')

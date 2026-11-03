@@ -8,7 +8,7 @@ How do I migrate my settings from HexChat?
 
 - Unix
 
-  1. Copy ``~/.config/hexchat`` to ``~/.config/zoitechat``. If there is nothing in ``~/.config/zoitechat``, check your `config file location <settings.html#config-files>`_. Some installation methods like snap and flatpak use a different directory.
+  1. Copy ``~/.config/hexchat`` to ``~/.config/zoitechat``. If there is nothing in ``~/.config/zoitechat``, check your `config file location <settings.html#config-files>`_. Custom profiles selected with ``--cfgdir`` use a different directory.
   2. Rename ``~/.config/zoitechat/hexchat.conf`` to ``~/.config/zoitechat/zoitechat.conf``
   3. Double-check your 3rd party addons (plugins/scripts) in ``~/.config/zoitechat/addons``
   4. Double-check your client certs in ``~/.config/zoitechat/certs``

@@ -1,5 +1,5 @@
 /*
- * hexchat-ng Qt 6 prototype. The engine and plugin ABI remain C.
+ * hexchat-ng Qt 6 frontend. The engine and plugin ABI remain C.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "qt-bridge.h"
@@ -463,7 +463,7 @@ public:
             if (key) select(key);
         });
         statusBar()->showMessage(QStringLiteral(
-            "Qt 6 prototype — use hexchat-ng → Network List, then Server → Join a Channel"));
+            "Welcome to hexchat-ng — use hexchat-ng → Network List, then Server → Join a Channel"));
         typingStatus_ = new QLabel(this); typingStatus_->setObjectName(QStringLiteral("typingStatus"));
         typingStatus_->setTextFormat(Qt::PlainText); statusBar()->addWidget(typingStatus_, 1);
         connect(input_, &QLineEdit::textEdited, this, [this](const QString &text) { qt_core_typing_update(active_, text.toUtf8().constData()); });
@@ -2012,7 +2012,7 @@ private:
     }
     void buildActions()
     {
-        // Match the supported entries in fe-gtk/menu.c, in original menu order.
+        // Preserve the traditional menu entries and order.
         auto root = [this](const QString &title, const QString &id) {
             auto *menu = menuBar()->addMenu(title); menu->setObjectName(id); return menu;
         };
@@ -2239,7 +2239,7 @@ private:
 
         addAction(help, QStringLiteral("&About"), QStringLiteral("about"), {}, [this]() {
             QMessageBox::about(this, QStringLiteral("hexchat-ng"), QStringLiteral(
-                "hexchat-ng\nExperimental Qt 6 frontend using the hexchat-ng IRC engine.\n\n"
+                "hexchat-ng\nIRC client with a Qt 6 interface.\n\n"
                 "Copyright © 2026 Britney Lozza.\n\nUse the menus to see keyboard shortcuts.\nLicensed under GPL version 2 or later."));
         });
         customMenus_ = new CustomMenus(menuBar(), usermenu, this,

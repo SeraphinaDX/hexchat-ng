@@ -30,9 +30,6 @@ if system == 'linux' or system == 'gnu' or system.startswith('gnu/') or system =
       pciids = join_paths(picidsdir, 'pci.ids')
       sysinfo_cargs += '-DPCIIDS_FILE="@0@"'.format(pciids)
     endif
-    if get_option('gtk-frontend')
-      sysinfo_deps += dependency('gtk+-3.0', version: '>= 3.22')
-    endif
 
     sysinfo_includes += 'unix'
     sysinfo_sources += [

@@ -36,13 +36,7 @@ else
                           required: get_option('tls'))
 endif
 
-gtk_mac_dep = disabler()
-if host_machine.system() == 'darwin' and get_option('gtk-frontend')
-  gtk_mac_dep = dependency('gtk-mac-integration-gtk3', required: get_option('mac-integration'))
-endif
-
 config_h = configuration_data()
-config_h.set('HAVE_GTK_MAC', host_machine.system() == 'darwin' and gtk_mac_dep.found())
 config_h.set10('ZOITECHAT_INSTALL_EMOJI_FONT', get_option('install-emoji-font'))
 config_h.set_quoted('PACKAGE_VERSION', meson.project_version())
 config_h.set_quoted('PACKAGE_NAME', meson.project_name())
@@ -61,12 +55,8 @@ config_h.set('USE_LIBCANBERRA', libcanberra_dep.found())
 config_h.set('USE_DBUS', dbus_dep.found())
 config_h.set('HAVE_LIBSECRET', libsecret_dep.found())
 config_h.set('USE_PLUGIN', get_option('plugin'))
-config_h.set('USE_GTK_FRONTEND', get_option('gtk-frontend'))
 
 config_h.set('G_DISABLE_SINGLE_INCLUDES', true)
-config_h.set('GTK_DISABLE_DEPRECATED', true)
-config_h.set('GTK_DISABLE_SINGLE_INCLUDES', true)
-config_h.set('GDK_PIXBUF_DISABLE_SINGLE_INCLUDES', true)
 
 # Detected features
 config_h.set('HAVE_MEMRCHR', cc.has_function('memrchr'))
@@ -239,7 +229,6 @@ summary({
 
 summary({
   'Qt Frontend': get_option('qt-frontend'),
-  'GTK Frontend': get_option('gtk-frontend') ? 'enabled (GTK+ 3.22+)' : 'disabled',
   'TLS (openssl)': libssl_dep.found(),
   'Plugin Support': get_option('plugin'),
   'DBus Support': dbus_dep.found(),

@@ -1,110 +1,56 @@
-Building
-========
+Building hexchat-ng
+===================
 
-Windows
--------
-
-The Windows build is currently x64-only and follows the same shape as
-ZoiteChat's Windows GitHub Actions workflow: prepare ``C:\gtk-build``, put
-the dependency bundles where ``win32\zoitechat.props`` expects them, then build
-``win32\zoitechat.sln`` with MSBuild.
-
-Software
-~~~~~~~~
-
-Install:
-
-- `Visual Studio 2022 Community <https://visualstudio.microsoft.com/vs/community/>`_ or `Visual Studio 2022 Build Tools <https://visualstudio.microsoft.com/downloads/>`_ with the **Desktop development with C++** workload
-- `Git for Windows <https://git-scm.com/download/win>`_
-- `7-Zip <https://7-zip.org/>`_
-- `Python 3.14 x64 <https://www.python.org/downloads/windows/>`_
-- `Inno Setup 6 <https://jrsoftware.org/isdl.php>`_ if you want to build the installer
-
-Source code
-~~~~~~~~~~~
-
-Clone the source and enter the checkout::
-
-    git clone https://github.com/zoitechat/zoitechat.git
-    cd zoitechat
+Qt 6 is the default and only graphical frontend. The GTK application and its
+build options have been removed. The maintained build uses Meson and Ninja.
 
 Dependencies
-~~~~~~~~~~~~
+------------
 
-Create the dependency root::
+Install a C17/C++17 compiler, Meson, Ninja, pkg-config, Qt 6.2 or newer
+(Core, Gui, Widgets and the resource compiler), Pango/Cairo 1.44 or newer,
+GLib/GIO development tools, gettext, libarchive and OpenSSL. Enchant 2 enables
+optional spell checking. Scripting plugins need their language development
+packages; disable plugins for the smallest build.
 
-    mkdir C:\gtk-build
+Build and run
+-------------
 
-Download the `GTK3 x64 bundle <https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.1/GTK3_Gvsbuild_zoitechat-2.18.1_x64.zip>`_
-and extract it to ``C:\gtk-build\gtk\x64\release``.
+From the repository root::
 
-Download the remaining Windows dependency artifacts from the
-`ZoiteChat gvsbuild releases <https://github.com/zoitechat/gvsbuild/releases>`_
-and extract them to these paths:
+    meson setup build-qt -Dplugin=false
+    meson compile -C build-qt
+    ./build-qt/src/fe-qt/hexchat-ng --no-auto
 
-- gendef: ``C:\gtk-build\gendef``
-- WinSparkle x64 bundle: ``C:\gtk-build\WinSparkle\x64``
-- Perl 5.42 x64 bundle: ``C:\gtk-build\perl-5.42.0.1\x64``
+Use ``--cfgdir /path/to/test-profile`` for an isolated configuration. Qt is
+selected by default. ``-Dtext-frontend=true`` additionally builds the text
+interface; ``-Dqt-frontend=false`` disables the graphical application.
 
-Set up Python where the project file expects it. From PowerShell, adjust the
-Python path if your install is elsewhere::
+For offline builds, pass
+``-Dpublic-suffix-list=/path/to/public_suffix_list.dat`` during setup.
 
-    mkdir C:\gtk-build\python-3.14
-    cmd /c mklink /J C:\gtk-build\python-3.14\x64 C:\Python314
-    C:\gtk-build\python-3.14\x64\python.exe -m pip install --upgrade pip cffi
+Existing builds
+---------------
 
-If you use different locations, set these environment variables before building
-instead of editing ``win32\zoitechat.props``:
+Use a fresh build directory when upgrading from a GTK-enabled checkout; old
+Meson caches can retain removed options. Remove ``-Dgtk-frontend``, ``-Dappindicator`` and ``-Dmac-integration`` from saved
+commands. These GTK-only options no longer exist.
 
-- ``ZOITECHAT_DEPS_PATH``
-- ``ZOITECHAT_GENDEF_PATH``
-- ``ZOITECHAT_PERL_PATH``
-- ``ZOITECHAT_PYTHON3_PATH``
-- ``ZOITECHAT_WINSPARKLE_PATH``
-- ``ZOITECHAT_ISCC_PATH``
+Tests
+-----
 
-Building
-~~~~~~~~
+Run::
 
-Open **Developer Command Prompt for VS 2022** in the source checkout and run::
+    meson test -C build-qt --no-suite runtime --print-errorlogs
 
-    msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=x64
+Plugin-enabled builds also support the runtime suite, which uses local sockets
+and isolated profiles to test IRC, CTCP, TLS/SASL, scripts and DCC.
 
-To build the installer, open ``win32\zoitechat.sln`` in Visual Studio,
-set ``release/installer`` as the startup project, then run **Build**.
+Platform packaging
+------------------
 
-The build output is written to ``..\zoitechat-build\x64``. The installer
-build writes a ``ZoiteChat*.exe`` installer in that output tree.
-
-Unix
-----
-
-First of all, you have to install the build dependencies. Package names
-differ across distros, so be creative and check meson's output
-if you get an error.
-
-Most package-managers can get the dependencies for you:
-
-- dnf::
-
-    dnf install -y meson gettext-devel gtk3-devel iso-codes-devel libarchive-devel libayatana-appindicator-gtk3-devel libcanberra-devel lua-devel openssl-devel perl-devel perl-ExtUtils-Embed python3-cffi python3-devel
-
-- apt::
-
-    apt-get install -y meson gettext iso-codes libarchive-dev libayatana-appindicator3-dev libcanberra-dev libglib2.0-dev libgtk-3-dev liblua5.4-dev libpci-dev libperl-dev libssl-dev python3-dev python3-cffi desktop-file-utils
-
-ZoiteChat has its source code hosted using `Git <http://git-scm.com/>`_, so you have to install Git as
-well. When it's ready, you can start the actual compilation, which is
-basically:
-
-.. code-block:: bash
-
-    git clone https://github.com/zoitechat/zoitechat.git
-    cd zoitechat
-    meson setup build
-    ninja -C build
-    sudo ninja -C build install
-
-This will compile with defaults. See ``meson configure build`` for more info
-about flags.
-
+The active GitHub workflow builds and tests Qt on Linux. The former GTK
+Windows, macOS, AppImage and Fedora release workflows are archived in
+``packaging/legacy-gtk`` as porting reference. They are not build instructions
+for the current Qt application. Cross-platform packages need Qt deployment
+support before those workflows can be re-enabled.
