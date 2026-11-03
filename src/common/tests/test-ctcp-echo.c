@@ -17,7 +17,7 @@ static void self_version(void)
     g_assert_cmpint(requests, ==, 1);
     ctcp_echo_reset(&connection, 1);
     for (i = 0; i < requests * 2; i++)
-        if (receive("NOTICE", "tester", "tester", "\001VERSION ZoiteChat test\001")) replies++;
+        if (receive("NOTICE", "tester", "tester", "\001VERSION hexchat-ng test\001")) replies++;
     g_assert_cmpint(replies, ==, 1);
 }
 static void unchanged_messages(void)

@@ -106,6 +106,9 @@ def run(binary, echo, copies):
                                 user = True
                             elif command in counts:
                                 assert parts[1].lower() == nick.lower(), line
+                                if command == "NOTICE":
+                                    payload = line.split(" :", 1)[1]
+                                    assert payload.startswith("\x01VERSION hexchat-ng "), repr(payload)
                                 counts[command] += 1
                                 assert counts[command] <= 2, "duplicate CTCP response: " + repr(lines)
                                 for _ in range(copies):
