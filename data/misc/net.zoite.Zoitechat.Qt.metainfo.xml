@@ -13,8 +13,8 @@
     <p>Chat on multiple networks, use typing indicators, search conversations,
     transfer files, and customize your interface and scripts.</p>
   </description>
-  <url type="homepage">https://github.com/SeraphinaDX/zoitechat-qt</url>
-  <url type="bugtracker">https://github.com/SeraphinaDX/zoitechat-qt/issues</url>
+  <url type="homepage">https://github.com/SeraphinaDX/hexchat-ng</url>
+  <url type="bugtracker">https://github.com/SeraphinaDX/hexchat-ng/issues</url>
   <provides><binary>hexchat-ng</binary></provides>
   <content_rating type="oars-1.1"/>
 </component>
