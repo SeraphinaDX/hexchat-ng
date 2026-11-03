@@ -241,6 +241,10 @@ test('qt-alerts-bridge', qt_alerts_bridge_test)
 
 # Real loopback protocol tests, each with an isolated probe plugin and config.
 if get_option('plugin') and host_machine.system() == 'linux' and not meson.is_cross_build()
+  test('qt-ctcp-runtime', find_program('python3'),
+    args: [meson.current_source_dir() / 'ctcp-runtime-test.py', zoitechat_qt],
+    suite: 'runtime', timeout: 75, is_parallel: false,
+  )
   test('qt-irc-runtime', find_program('python3'),
     args: [meson.current_source_dir() / 'irc-runtime-test.py', zoitechat_qt],
     suite: 'runtime', timeout: 150, is_parallel: false,

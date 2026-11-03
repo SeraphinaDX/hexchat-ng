@@ -2,6 +2,7 @@ common_sources = [
   'cfgfiles.c',
   'chanopt.c',
   'ctcp.c',
+  'ctcp-echo.c',
   'dcc.c',
   'emoji-data.c',
   'gtk3-theme-service.c',
@@ -230,3 +231,10 @@ test('Hex Color Tests', hexcolor_tests,
   protocol: 'tap',
   timeout: 120,
 )
+
+ctcp_echo_tests = executable('ctcp-echo-tests',
+  ['tests/test-ctcp-echo.c', 'ctcp-echo.c'],
+  include_directories: [config_h_include, include_directories('.')],
+  dependencies: zoitechat_common_header_deps,
+)
+test('CTCP Echo Tests', ctcp_echo_tests)

@@ -54,6 +54,7 @@
 #include "proto-irc.h"
 #include "servlist.h"
 #include "server.h"
+#include "ctcp-echo.h"
 #include "sts.h"
 
 #ifdef USE_OPENSSL
@@ -1910,6 +1911,8 @@ server_set_defaults (server *serv)
 	serv->have_account_tag = FALSE;
 	serv->have_server_time = FALSE;
 	serv->have_message_tags = FALSE;
+	ctcp_echo_reset(serv, 0);
+	ctcp_echo_reset(serv, 1);
 	serv->have_echo_message = FALSE;
 	serv->have_sasl = FALSE;
 	serv->have_except = FALSE;
@@ -2029,6 +2032,8 @@ server_away_save_message (server *serv, char *nick, char *msg)
 void
 server_free (server *serv)
 {
+	ctcp_echo_reset(serv, 0);
+	ctcp_echo_reset(serv, 1);
 	serv->cleanup (serv);
 
 	serv_list = g_slist_remove (serv_list, serv);

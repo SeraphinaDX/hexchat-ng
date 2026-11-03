@@ -31,6 +31,7 @@
 #include "zoitechat.h"
 #include "proto-irc.h"
 #include "ctcp.h"
+#include "ctcp-echo.h"
 #include "fe.h"
 #include "ignore.h"
 #include "inbound.h"
@@ -267,12 +268,14 @@ irc_set_away (server *serv, char *reason)
 static void
 irc_ctcp (server *serv, char *to, char *msg)
 {
+	if (!serv->p_cmp(to, serv->nick)) ctcp_echo_reset(serv, 0);
 	tcp_sendf (serv, "PRIVMSG %s :\001%s\001\r\n", to, msg);
 }
 
 static void
 irc_nctcp (server *serv, char *to, char *msg)
 {
+	if (!serv->p_cmp(to, serv->nick)) ctcp_echo_reset(serv, 1);
 	tcp_sendf (serv, "NOTICE %s :\001%s\001\r\n", to, msg);
 }
 
@@ -1078,6 +1081,11 @@ process_named_msg (session *sess, char *type, char *word[], char *word_eol[],
 		safe_strcpy (nick, word[1], sizeof (nick));
 		ex[0] = '!';
 	}
+
+	text = word_eol[4];
+	if (*text == ':') text++;
+	if (ctcp_echo_duplicate(serv, type, nick, word[3], text, g_get_monotonic_time()))
+		return;
 
 
 	/** Update the account for this message's source. */

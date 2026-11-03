@@ -632,6 +632,7 @@ typedef struct server
 	unsigned int have_account_tag:1;	/* cap account-tag */
 	unsigned int have_server_time:1;	/* cap server-time */
 	unsigned int have_message_tags:1;
+	struct { char *message; gint64 received; } self_ctcp_echo[2];
 	unsigned int have_echo_message:1;
 	unsigned int have_sasl:1;		/* SASL capability */
 	unsigned int have_except:1;	/* ban exemptions +e */
