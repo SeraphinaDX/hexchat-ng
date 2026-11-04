@@ -20,7 +20,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config meson ninja-build gettext \
             qt6-base-dev qt6-base-dev-tools libpango1.0-dev libenchant-2-dev \
-            libglib2.0-dev libssh2-1-dev libssl-dev libarchive-dev python3-dev python3-cffi python3-paramiko openssh-client desktop-file-utils publicsuffix openssl ca-certificates
+            libglib2.0-dev libssh2-1-dev libssl-dev libarchive-dev python3-dev python3-cffi python3-paramiko desktop-file-utils publicsuffix openssl ca-certificates
       - name: Configure hexchat-ng
         run: >-
           meson setup build

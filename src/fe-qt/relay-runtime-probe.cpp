@@ -6,6 +6,10 @@
 #include <QApplication>
 #include <QTextBrowser>
 #include <QMessageBox>
+#include <QMainWindow>
+#include <QDialog>
+#include <QLineEdit>
+#include <QPushButton>
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
@@ -26,7 +30,17 @@ static QString contents(const QString &needle) {
 static int tick(void *) {
     if (++ticks > 800) { report("FAIL timeout"); return 0; }
     const auto scenario = QByteArray(std::getenv("QT_RELAY_SCENARIO"));
-    if (scenario == "encrypted" && ticks == 1) relayBackend()->connectProfile("fixture", "relay-test-passphrase");
+    if (scenario == "encrypted" && ticks == 1) {
+        QWidget *owner = nullptr;
+        for (auto *widget : QApplication::topLevelWidgets()) if (qobject_cast<QMainWindow *>(widget)) { owner = widget; break; }
+        if (!owner) { report("FAIL missing main window"); return 0; }
+        showRelayManager(owner);
+        auto *dialog = owner->findChild<QDialog *>("relayManager");
+        auto *passphrase = dialog ? dialog->findChild<QLineEdit *>("relayPassphrase") : nullptr;
+        if (!passphrase || passphrase->isHidden()) { report("FAIL encrypted key has no passphrase input"); return 0; }
+        passphrase->setText("relay-test-passphrase");
+        dialog->findChild<QPushButton *>("relayConnect")->click(); dialog->hide();
+    }
     if (scenario == "trust" || scenario == "reject") {
         for (auto *widget : QApplication::topLevelWidgets()) {
             auto *question = qobject_cast<QMessageBox *>(widget);

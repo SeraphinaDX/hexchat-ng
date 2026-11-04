@@ -69,11 +69,15 @@ icons and manual page. The former GTK platform packagers are archived under
 
 ## AnsiChat SSH relay
 
+Native [AnsiChat](https://github.com/SeraphinaDX/AnsiChat) relay support keeps
+your IRC sessions online while the desktop client is closed, with retained
+history, topics, nick lists and typing indicators in the normal Qt interface.
 Use **hexchat-ng → AnsiChat Relays…** to configure a persistent relay connection.
 **Copy Public Key** and **Export Public Key…** make it easy to enroll this client
 on your relay server. Host keys are verified before authentication. See the
 [relay guide](RELAY.md) for setup, reconnect behavior, key storage and protocol
-coverage. Direct IRC and relay connections can be used together.
+coverage, or follow the [relay quick start](../../readme.md#relay-quick-start).
+Direct IRC and relay connections can be used together.
 
 ## Tests
 

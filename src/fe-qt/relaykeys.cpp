@@ -56,6 +56,19 @@ bool createRelayKey(const QString &path, QString *error)
     seed.fill(0); secret.fill(0); envelope.fill(0); pem.fill(0);
     return true;
 }
+bool relayKeyIsEncrypted(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly) || file.size() > 1024 * 1024) return false;
+    const auto pem = file.readAll();
+    const QByteArray begin("-----BEGIN OPENSSH PRIVATE KEY-----"), end("-----END OPENSSH PRIVATE KEY-----");
+    const int start = pem.indexOf(begin), stop = pem.indexOf(end);
+    if (start < 0 || stop <= start) return false;
+    auto data = QByteArray::fromBase64(pem.mid(start + begin.size(), stop - start - begin.size()));
+    if (!data.startsWith(QByteArray("openssh-key-v1\0", 15))) return false;
+    data.remove(0, 15); QByteArray cipher;
+    return take(data, cipher) && !cipher.isEmpty() && cipher != "none";
+}
 QString relayPublicKey(const QString &path, QString *error)
 {
     QFile file(path);

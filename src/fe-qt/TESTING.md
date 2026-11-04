@@ -555,7 +555,7 @@ behavior. Popup-root menus, markup and custom icons remain outside this batch.
    and restart, and confirm it remains with that scope. `/notify nick` should add a missing nick or remove an existing nick and
    update the window. Remove test rules afterward.
 6. **Markers:** Press Ctrl+M, receive more lines, then Ctrl+Shift+M. The view
-   should return to the highlighted marker row. Switch away/back to check the
+   should return to the marker row, with a thin divider below it rather than row shading. Switch away/back to check the
    automatic last-visible-line marker. Each conversation should keep its own
    marker. Clear Text or enough scrollback trimming should remove the marker
    safely; Save Text should contain no extra marker text.
@@ -1036,6 +1036,11 @@ and rendered branch pixels; desktop font/theme behavior still needs checking.
    Resize/narrow the window, move panes and detach/attach while following wrapped
    output. Repeat in detached windows. Disable following and verify preservation;
    Jump to Latest should still work independently.
+
+3. With a relay channel containing thousands of wrapped messages, repeatedly
+   switch between that channel and a private chat. Returning from the bottom
+   should show the latest message after layout settles; returning from scrollback
+   should retain the saved position. Receive background messages between visits.
 
 ## IRC protocol runtime regression
 

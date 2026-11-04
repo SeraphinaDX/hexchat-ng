@@ -86,6 +86,7 @@
 #include <QCryptographicHash>
 #include <QTextBrowser>
 #include <QTextDocument>
+#include <QAbstractTextDocumentLayout>
 #include <QScrollBar>
 #include <QSplitter>
 #include <QStatusBar>
@@ -201,21 +202,65 @@ protected:
 
 class ChatTranscript final : public QTextBrowser {
 public:
-    using QTextBrowser::QTextBrowser;
+    explicit ChatTranscript(QWidget *parent = nullptr) : QTextBrowser(parent) {
+        connect(verticalScrollBar(), &QScrollBar::rangeChanged, this, [this]() {
+            if (pendingScrollRestore_) applyScrollPosition(pendingScrollPosition_);
+        });
+        connect(verticalScrollBar(), &QScrollBar::actionTriggered, this, [this]() { cancelScrollRestore(); });
+        connect(verticalScrollBar(), &QScrollBar::sliderPressed, this, [this]() { cancelScrollRestore(); });
+    }
     bool autoCopy = false, copyTimestamps = false, copyColors = false;
     std::function<bool()> followNewText;
     bool atBottom() const {
         const auto *scroll = verticalScrollBar();
         return scroll->maximum() - scroll->value() <= 20;
     }
+    void restoreScrollPosition(int position) {
+        pendingScrollRestore_ = true;
+        pendingScrollPosition_ = position;
+        restoreDocument_ = document();
+        applyScrollPosition(position);
+        viewport()->update();
+    }
     int savedScrollPosition() const {
-        return followNewText && followNewText() && atBottom() ? -1 : verticalScrollBar()->value();
+        if (pendingScrollRestore_ && restoreDocument_ == document()) return pendingScrollPosition_;
+        return atBottom() ? -1 : verticalScrollBar()->value();
     }
 protected:
+    void paintEvent(QPaintEvent *event) override {
+        if (pendingScrollRestore_) applyScrollPosition(pendingScrollPosition_);
+        QTextBrowser::paintEvent(event);
+        QPainter painter(viewport());
+        for (const auto &selection : extraSelections()) {
+            const auto color = selection.format.property(QTextFormat::UserProperty);
+            if (!color.isValid()) continue;
+            auto cursor = selection.cursor;
+            cursor.movePosition(QTextCursor::EndOfBlock);
+            const int y = cursorRect(cursor).bottom();
+            painter.setPen(QPen(color.value<QColor>(), 1));
+            painter.drawLine(0, y, viewport()->width(), y);
+        }
+    }
     void resizeEvent(QResizeEvent *event) override {
         const bool follow = followNewText && followNewText() && atBottom();
         QTextBrowser::resizeEvent(event);
         if (follow) verticalScrollBar()->setValue(verticalScrollBar()->maximum());
+    }
+    void wheelEvent(QWheelEvent *event) override { cancelScrollRestore(); QTextBrowser::wheelEvent(event); }
+    void keyPressEvent(QKeyEvent *event) override { cancelScrollRestore(); QTextBrowser::keyPressEvent(event); }
+    bool pendingScrollRestore_ = false;
+    int pendingScrollPosition_ = -1;
+    QPointer<QTextDocument> restoreDocument_;
+    void cancelScrollRestore() { pendingScrollRestore_ = false; }
+    void applyScrollPosition(int position) {
+        if (restoreDocument_ != document()) { cancelScrollRestore(); return; }
+        document()->documentLayout()->blockBoundingRect(document()->lastBlock());
+        auto *scroll = verticalScrollBar();
+        scroll->setValue(position < 0 ? scroll->maximum() : qMin(position, scroll->maximum()));
+        // setDocument initially exposes the previous (or estimated) range. Keep
+        // restoring until QTextEdit has published the fully laid out range.
+        const int expectedMaximum = qMax(0, qRound(document()->documentLayout()->documentSize().height()) - viewport()->height());
+        if (qAbs(scroll->maximum() - expectedMaximum) <= 1) pendingScrollRestore_ = false;
     }
     Qt::KeyboardModifiers selectionModifiers_;
     QMimeData *createMimeDataFromSelection() const override {
@@ -223,7 +268,7 @@ protected:
         data->setText(copyIrcSelection(textCursor(), copyTimestamps || (selectionModifiers_ & Qt::ShiftModifier), copyColors || (selectionModifiers_ & Qt::ControlModifier)));
         return data;
     }
-    void mousePressEvent(QMouseEvent *event) override { selectionModifiers_ = event->modifiers(); QTextBrowser::mousePressEvent(event); }
+    void mousePressEvent(QMouseEvent *event) override { cancelScrollRestore(); selectionModifiers_ = event->modifiers(); QTextBrowser::mousePressEvent(event); }
     void mouseReleaseEvent(QMouseEvent *event) override {
         selectionModifiers_ = event->modifiers();
         QTextBrowser::mouseReleaseEvent(event);
@@ -602,9 +647,7 @@ public:
         auto &conversation = conversations_[key];
         chat_->setDocument(conversation.document);
         updateMarker();
-        QScrollBar *scroll = chat_->verticalScrollBar();
-        scroll->setValue(conversation.scrollPosition < 0 ? scroll->maximum()
-                         : qMin(conversation.scrollPosition, scroll->maximum()));
+        chat_->restoreScrollPosition(conversation.scrollPosition);
         setTopicText(topic_, conversation.topic);
         input_->setText(conversation.draft);
         input_->setCursorPosition(conversation.inputCursor);
@@ -1067,8 +1110,7 @@ public:
         view->restoreGeometry(settings_->value(view->geometryKey + QStringLiteral("/geometry")).toByteArray());
         view->splitter->restoreState(settings_->value(view->geometryKey + QStringLiteral("/splitter")).toByteArray());
         applyDisplay(); view->show();
-        auto *scroll = view->chat->verticalScrollBar();
-        scroll->setValue(state.scrollPosition < 0 ? scroll->maximum() : qMin(state.scrollPosition, scroll->maximum()));
+        view->chat->restoreScrollPosition(state.scrollPosition);
         view->input->setFocus();
     }
     int sessionWindowStatus(void *key) const
@@ -1253,7 +1295,7 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override
     {
         if (channels_ && (object == channels_->viewport() || object == tabs_)) {
-            if (event->type() == QEvent::Wheel && wheelSwitches_) {
+            if (event->type() == QEvent::Wheel && object == tabs_ && wheelSwitches_) {
                 auto *wheel = static_cast<QWheelEvent *>(event);
                 const int delta = wheel->angleDelta().y();
                 if (delta) { switchConversation(delta < 0 ? 1 : -1); event->accept(); return true; }
@@ -1391,7 +1433,11 @@ private:
     void updateCommandButtons(void *key, NickList *users, QScrollArea *userButtons, QScrollArea *dialogButtons, bool showUsers, bool showDialog)
     {
         QtSessionInfo info{}; const bool valid = key && qt_core_session_info(key, &info);
-        userButtons->setVisible(valid && info.channel && showUsers); dialogButtons->setVisible(valid && info.query && showDialog);
+        auto hasButtons = [](QScrollArea *area) {
+            return area->widget() && area->widget()->layout() && area->widget()->layout()->count() > 0;
+        };
+        userButtons->setVisible(valid && info.channel && showUsers && hasButtons(userButtons));
+        dialogButtons->setVisible(valid && info.query && showDialog && hasButtons(dialogButtons));
         bool selected = false; for (auto *item : users->selectedItems()) if (!item->isHidden()) { selected = true; break; }
         for (auto *area : {userButtons, dialogButtons}) for (auto *button : area->findChildren<QPushButton *>()) {
             const QString command = button->property("command").toString();
@@ -1456,6 +1502,8 @@ private:
             }
             if (auto *old = area->takeWidget()) old->deleteLater();
             area->setWidget(content);
+            const int heightLimit = kind == QT_CONFIG_BUTTONS ? 180 : 90;
+            area->setMaximumHeight(qMin(heightLimit, content->sizeHint().height() + 2 * area->frameWidth()));
         };
         build(userButtons_, QT_CONFIG_BUTTONS, 2, [this]() { return captureTarget(); }); build(dialogButtons_, QT_CONFIG_DIALOG_BUTTONS, 4, [this]() { return captureTarget(); });
         for (auto it = detached_.cbegin(); it != detached_.cend(); ++it) {
@@ -1729,8 +1777,7 @@ private:
             if (showMarker_ && conversations_.contains(key) && validMarker(conversations_[key])) {
                 QTextEdit::ExtraSelection marker;
                 marker.cursor = QTextCursor(conversations_[key].marker);
-                QColor color = ircPaletteColor(36, palette()); color.setAlpha(70);
-                marker.format.setBackground(color); marker.format.setProperty(QTextFormat::FullWidthSelection, true);
+                marker.format.setProperty(QTextFormat::UserProperty, ircPaletteColor(36, palette()));
                 selections.append(marker);
             }
             view->setExtraSelections(selections);

@@ -1,13 +1,22 @@
 # AnsiChat relay connections
 
-hexchat-ng can attach to an AnsiChat SSH relay alongside ordinary direct IRC
+hexchat-ng can attach to an [AnsiChat](https://github.com/SeraphinaDX/AnsiChat)
+SSH relay alongside ordinary direct IRC
 connections. The relay keeps its IRC sessions online while hexchat-ng is closed.
-No AnsiChat executable or external SSH process is needed on the client device.
+The client uses libssh2 directly; it does not run system `ssh`, use SSH agents,
+or read system SSH configuration. No AnsiChat executable is needed on the client
+device.
 
 You can copy or export a public key before entering a relay hostname. The
 identity is saved so it remains the same when you finish setup later.
 
 ## Connect
+
+Start with a running AnsiChat relay. If you are setting up your own, follow
+AnsiChat's [relay server setup](https://github.com/SeraphinaDX/AnsiChat/blob/main/RELAY.md#1-configure-the-relay-server)
+to configure its IRC networks, autojoin channels and SSH listener. Only the relay
+machine needs AnsiChat installed. Your desktop uses the built-in hexchat-ng
+relay manager below.
 
 1. Open **hexchat-ng → AnsiChat Relays…** and enter a name, host, SSH port and
    SSH username. The defaults are port **2222** and username **copperline**;
@@ -22,6 +31,11 @@ identity is saved so it remains the same when you finish setup later.
 4. Paste the relay server's `SHA256:…` host-key fingerprint into the settings,
    or click **Connect** and compare the first-connection trust prompt with the
    fingerprint shown by your server. Accept only if they match.
+
+Use the authorized-keys file configured on the **running relay**. A server still
+using a Copperline configuration may read its file under `~/.config/copperline/`;
+adding a key to a new AnsiChat directory does not change that running configuration.
+The relay's startup log prints the exact authorized-keys path.
 
 The saved fingerprint is checked before public-key authentication on every
 attachment. A changed host key is rejected. Verify the new fingerprint through
@@ -46,7 +60,9 @@ created with owner-only read/write permissions. Keys are not overwritten when
 generating a new identity. Removing a relay profile does not delete its key.
 
 **Choose Key…** imports an existing OpenSSH-format private key. If it is
-passphrase-protected, enter its passphrase in **Key passphrase** when connecting.
+passphrase-protected, the **Key passphrase** field appears when you select it.
+Generated keys are unencrypted and do not show this field. A key passphrase is
+not a relay login password.
 The passphrase is never saved to the profile file. It is held in memory for
 reconnections during the current attachment and cleared on detach. An encrypted
 key therefore needs its passphrase again after restarting hexchat-ng.

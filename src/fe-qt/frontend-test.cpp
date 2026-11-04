@@ -314,8 +314,13 @@ int main(int argc, char **argv)
     setNative("gui_tab_newtofront", "2"); setNative("gui_tab_trunc", "20"); setNative("gui_tab_scrollchans", "1");
     qt_fe_gui_control(server, 8, 0); qt_fe_select_session(server);
     QWheelEvent switchWheel(QPointF(5, 5), QPointF(switcher->viewport()->mapToGlobal(QPoint(5,5))), QPoint(), QPoint(0,-120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+    const int previousTreeHeight = switcher->maximumHeight();
+    switcher->setMaximumHeight(30); QCoreApplication::processEvents();
+    switcher->verticalScrollBar()->setValue(0);
     QApplication::sendEvent(switcher->viewport(), &switchWheel);
-    verify(activated == channel, "native wheel option switches to next conversation");
+    verify(switcher->verticalScrollBar()->value() > 0, "tree wheel scrolls an overflowing channel list");
+    switcher->setMaximumHeight(previousTreeHeight); QCoreApplication::processEvents();
+    verify(activated == server, "tree wheel scrolls without switching conversations even when tab wheel switching is enabled");
     setNative("gui_tab_scrollchans", "0"); qt_fe_gui_control(server, 8, 0); qt_fe_select_session(server);
     QApplication::sendEvent(switcher->viewport(), &switchWheel);
     verify(activated == server, "disabled wheel switching leaves active conversation unchanged");
@@ -684,6 +689,9 @@ int main(int argc, char **argv)
     const QString markedLine = chat->document()->lastBlock().text();
     qt_fe_print(channel, "after marker", 0); trigger("moveToMarker");
     verify(chat->textCursor().block().text() == markedLine && chat->extraSelections().size() == 1, "marker navigation returns to retained marker block");
+    verify(chat->extraSelections().first().format.background().style() == Qt::NoBrush &&
+           chat->extraSelections().first().format.property(QTextFormat::UserProperty).isValid(),
+           "last-read marker uses a divider without shading a message row");
     chat->moveCursor(QTextCursor::Start);
     trigger("find");
     auto *search = window->findChild<QLineEdit *>(QStringLiteral("chatSearch"));
@@ -1256,6 +1264,39 @@ int main(int argc, char **argv)
     qt_fe_select_session(channel);
     QCoreApplication::processEvents();
     verify(chat->verticalScrollBar()->value() == chat->verticalScrollBar()->maximum(), "returning to a followed channel shows background status lines at the bottom");
+    {
+        int busyChannel;
+        engine.insert(&busyChannel, engine.value(channel));
+        qt_fe_new_session(&busyChannel, "##programming", false);
+        qt_fe_select_session(&busyChannel);
+        chat->document()->setMaximumBlockCount(5000);
+        qt_fe_select_session(query);
+        for (int i = 0; i < 2000; ++i) {
+            const auto line = QStringLiteral("relay backlog %1 ").arg(i) + QString((i % 7 + 1) * 130, QLatin1Char('x'));
+            qt_fe_print(&busyChannel, line.toUtf8().constData(), 0);
+        }
+        for (int visit = 0; visit < 3; ++visit) {
+            qt_fe_select_session(&busyChannel);
+            for (int tick = 0; tick < 5; ++tick) QCoreApplication::processEvents();
+            verify(chat->verticalScrollBar()->value() == chat->verticalScrollBar()->maximum(),
+                   "large wrapped relay backlog returns to latest after layout settles");
+            chat->verticalScrollBar()->setValue(chat->verticalScrollBar()->maximum());
+            qt_fe_select_session(query);
+            qt_fe_print(&busyChannel, QString(2200, QLatin1Char('y')).toUtf8().constData(), 0);
+        }
+        qt_fe_select_session(&busyChannel);
+        for (int tick = 0; tick < 5; ++tick) QCoreApplication::processEvents();
+        const int historyPosition = chat->verticalScrollBar()->maximum() / 2;
+        chat->verticalScrollBar()->setValue(historyPosition);
+        qt_fe_select_session(query);
+        qt_fe_print(&busyChannel, "background relay message while reading old messages", 0);
+        qt_fe_select_session(&busyChannel);
+        for (int tick = 0; tick < 5; ++tick) QCoreApplication::processEvents();
+        verify(chat->verticalScrollBar()->value() == historyPosition,
+               "large relay backlog preserves intentional history position after layout settles");
+        qt_fe_remove_session(&busyChannel); engine.remove(&busyChannel);
+        qt_fe_select_session(channel);
+    }
     const QSize beforeStatusResize = window->size();
     window->resize(qMax(window->minimumWidth(), beforeStatusResize.width() - 180), qMax(window->minimumHeight(), beforeStatusResize.height() - 90));
     QCoreApplication::processEvents();
@@ -1278,6 +1319,15 @@ int main(int argc, char **argv)
     verify(chat->verticalScrollBar()->value() == 0, "disabled following preserves scroll position");
     trigger("jumpLatest");
     verify(chat->verticalScrollBar()->value() == chat->verticalScrollBar()->maximum(), "jump to latest");
+    qt_fe_select_session(query);
+    qt_fe_print(channel, "background message with following disabled", 0);
+    qt_fe_select_session(channel); QCoreApplication::processEvents();
+    verify(chat->verticalScrollBar()->value() == chat->verticalScrollBar()->maximum(), "returning after scrolling to bottom shows latest even with following disabled");
+    chat->verticalScrollBar()->setValue(0);
+    qt_fe_select_session(query);
+    qt_fe_print(channel, "background message while reading history with following disabled", 0);
+    qt_fe_select_session(channel); QCoreApplication::processEvents();
+    verify(chat->verticalScrollBar()->value() == 0, "returning preserves history position with following disabled");
     trigger("disconnect");
     verify(commands.last().line == QStringLiteral("/discon") && !action("editTopic")->isEnabled(), "disconnect command and enablement");
     trigger("reconnect");
@@ -1490,6 +1540,12 @@ int main(int argc, char **argv)
     verify(!action("trayEnabled")->isChecked() && action("notificationPreviews")->isChecked() &&
            !action("notifications")->isChecked() && action("closeToTray")->isChecked() && !action("rankUsers")->isChecked(),
            "desktop and user sorting preferences restored");
+    CustomizationTestEngine::lists[QT_CONFIG_DIALOG_BUTTONS].clear();
+    qt_fe_customization_changed(QT_CONFIG_DIALOG_BUTTONS);
+    qt_fe_select_session(query);
+    action("showDialogButtons")->setChecked(true);
+    auto *dialogPanel = window->findChild<QWidget *>(QStringLiteral("conversationCenter"))->findChild<QScrollArea *>();
+    verify(dialogPanel && dialogPanel->isHidden(), "private chat hides empty command-button panel");
     CustomizationTestEngine::lists[QT_CONFIG_DIALOG_BUTTONS] = {{QStringLiteral("Inspect"), QStringLiteral("echo %s")}, {QStringLiteral("DCC"), QStringLiteral("dcc chat %s")}};
     qt_fe_customization_changed(QT_CONFIG_DIALOG_BUTTONS);
     qt_fe_select_session(query);
@@ -1497,6 +1553,9 @@ int main(int argc, char **argv)
     QPushButton *inspect = nullptr, *dcc = nullptr;
     for (auto *button : customButtons) { if (button->text() == QStringLiteral("Inspect")) inspect = button; if (button->text() == QStringLiteral("DCC")) dcc = button; }
     verify(inspect && inspect->isEnabled() && dcc && dcc->isEnabled(), "dialog button refresh enables file and direct-chat commands");
+    QCoreApplication::processEvents();
+    verify(dialogPanel && !dialogPanel->isHidden() && dialogPanel->height() < 90,
+           "configured private-chat buttons use a compact visible panel");
     if (inspect) inspect->click();
     verify(CustomizationTestEngine::lastSession == query && CustomizationTestEngine::lastTarget == QStringLiteral("Alice"), "dialog custom button expands original private-chat target");
     qt_fe_gui_control(query, 7, 1);
@@ -1506,6 +1565,9 @@ int main(int argc, char **argv)
     auto *queryInspect = queryView->dialogButtons->findChild<QPushButton *>(QStringLiteral("customCommandButton"));
     qt_fe_select_session(server); if (queryInspect) queryInspect->click();
     verify(CustomizationTestEngine::lastSession == query && CustomizationTestEngine::lastTarget == QStringLiteral("Alice"), "detached query button retains original target after main selection changes");
+    CustomizationTestEngine::lists[QT_CONFIG_DIALOG_BUTTONS].clear();
+    qt_fe_customization_changed(QT_CONFIG_DIALOG_BUTTONS);
+    verify(queryView->dialogButtons->isHidden(), "detached private chat hides panel after all command buttons are removed");
     qt_fe_gui_control(query, 7, 2); QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     qt_fe_select_session(server);
     verify(window->size() == QSize(700, 500), "window size restored");

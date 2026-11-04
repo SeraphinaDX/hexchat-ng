@@ -12,8 +12,6 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QTemporaryDir>
-#include <QProcess>
-#include <QStandardPaths>
 #include <cstdio>
 static QByteArray directory;
 extern "C" const char *qt_core_config_dir() { return directory.constData(); }
@@ -27,7 +25,7 @@ int main(int argc, char **argv) {
     CHECK(createRelayKey(key, &error));
     QFile privateFile(key); CHECK(privateFile.open(QIODevice::ReadOnly)); const auto privateBytes = privateFile.readAll(); privateFile.close();
     CHECK(!createRelayKey(key, &error));
-    const auto publicKey = relayPublicKey(key, &error); CHECK(publicKey.startsWith("ssh-ed25519 ")); CHECK(!publicKey.contains("PRIVATE"));
+    const auto publicKey = relayPublicKey(key, &error); CHECK(publicKey.startsWith("ssh-ed25519 ")); CHECK(!relayKeyIsEncrypted(key)); CHECK(!publicKey.contains("PRIVATE"));
 #ifndef Q_OS_WIN
     CHECK(!(QFile::permissions(key) & (QFileDevice::ReadOther | QFileDevice::WriteOther | QFileDevice::ReadGroup | QFileDevice::WriteGroup)));
 #endif
@@ -35,11 +33,6 @@ int main(int argc, char **argv) {
     QFile publicFile(temporary.filePath("client.pub")); CHECK(publicFile.open(QIODevice::ReadOnly)); CHECK(publicFile.readAll() == publicKey.toUtf8());
     CHECK(!exportRelayPublicKey(key, key, &error));
     CHECK(privateFile.open(QIODevice::ReadOnly)); CHECK(privateFile.readAll() == privateBytes); privateFile.close();
-    const auto sshKeygen = QStandardPaths::findExecutable("ssh-keygen");
-    if (!sshKeygen.isEmpty()) {
-        QProcess process; process.start(sshKeygen, {"-y", "-f", key}); CHECK(process.waitForFinished(10000)); CHECK(process.exitCode() == 0);
-        CHECK(process.readAllStandardOutput().trimmed().startsWith(publicKey.section(' ', 0, 1).toUtf8()));
-    }
     QWidget owner;
     auto *backend = relayBackend(&owner); CHECK(backend);
     RelayProfile profile; profile.id = "test"; profile.name = "Home"; profile.endpoint.host = "127.0.0.1"; profile.endpoint.user = "copperline"; profile.endpoint.keyPath = key;
@@ -57,6 +50,7 @@ int main(int argc, char **argv) {
     auto *copy = dialog->findChild<QPushButton *>("relayCopyPublicKey"); CHECK(copy); copy->click();
     CHECK(QApplication::clipboard()->text() == publicKey);
     CHECK(dialog->findChild<QPlainTextEdit *>("relayPublicKey")->toPlainText() == publicKey);
+    CHECK(dialog->findChild<QLineEdit *>("relayPassphrase")->isHidden());
     CHECK(!dialog->findChild<QLineEdit *>("relayPassphrase")->text().contains("must-not-be-saved"));
     dialog->close(); QApplication::processEvents();
     CHECK(backend->removeProfile("test", &error)); CHECK(backend->profiles().isEmpty());

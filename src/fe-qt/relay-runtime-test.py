@@ -15,6 +15,7 @@ import threading
 import time
 try:
     import paramiko
+    from cryptography.hazmat.primitives import serialization
 except ImportError:
     print("SKIP: relay SSH integration requires Python Paramiko")
     sys.exit(77)
@@ -31,7 +32,9 @@ def run(binary, key_tool, scenario):
         private_key = folder / "client_ed25519"
         subprocess.run([str(key_tool), "--generate-key", str(private_key)], env=environment, check=True)
         if scenario == "encrypted":
-            subprocess.run(["ssh-keygen", "-q", "-p", "-P", "", "-N", "relay-test-passphrase", "-f", str(private_key)], check=True, capture_output=True)
+            key = serialization.load_ssh_private_key(private_key.read_bytes(), password=None)
+            private_key.write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.OpenSSH,
+                                                      serialization.BestAvailableEncryption(b"relay-test-passphrase")))
         client_key = paramiko.Ed25519Key.from_private_key_file(str(private_key), password="relay-test-passphrase" if scenario == "encrypted" else None)
         host_key = paramiko.RSAKey.generate(2048)
         fingerprint = "SHA256:" + base64.b64encode(hashlib.sha256(host_key.asbytes()).digest()).decode().rstrip("=")

@@ -40,6 +40,7 @@ public:
         auto *keyRow = new QHBoxLayout; key_ = new QLineEdit(this); key_->setObjectName("relayPrivateKey");
         auto *browse = new QPushButton("Choose Key…", this); browse->setObjectName("relayChooseKey"); keyRow->addWidget(key_); keyRow->addWidget(browse); form->addRow("Private key", keyRow);
         passphrase_ = new QLineEdit(this); passphrase_->setObjectName("relayPassphrase"); passphrase_->setEchoMode(QLineEdit::Password); passphrase_->setPlaceholderText("Only needed for an encrypted key; never saved"); form->addRow("Key passphrase", passphrase_);
+        passphraseLabel_ = form->labelForField(passphrase_); passphraseLabel_->hide(); passphrase_->hide();
         automatic_ = new QCheckBox("Connect when hexchat-ng starts", this); automatic_->setObjectName("relayAutoconnect"); form->addRow(automatic_);
         reconnect_ = new QCheckBox("Reconnect after a lost relay connection", this); reconnect_->setChecked(true); form->addRow(reconnect_);
         fields->addLayout(form);
@@ -84,6 +85,7 @@ public:
 private:
     RelayBackend *backend_; QString id_; bool localNote_ = false;
     QListWidget *list_; QLineEdit *name_, *host_, *user_, *key_, *fingerprint_, *passphrase_;
+    QWidget *passphraseLabel_;
     QSpinBox *port_; QCheckBox *automatic_, *reconnect_; QPlainTextEdit *public_; QLabel *status_;
     void note(const QString &s) { localNote_ = true; status_->setText(s); }
     QString defaultKeyPath() const { return QDir(backend_->configDirectory()).filePath("relay-keys/" + id_ + "_ed25519"); }
@@ -93,14 +95,19 @@ private:
         fingerprint_->setText(p.endpoint.fingerprint); key_->setText(p.endpoint.keyPath.isEmpty() ? defaultKeyPath() : p.endpoint.keyPath);
         automatic_->setChecked(p.autoconnect); reconnect_->setChecked(p.reconnect); passphrase_->clear(); localNote_ = false; refreshPublicKey();
     }
-    void refreshPublicKey() { QString error; public_->setPlainText(QFileInfo::exists(key_->text()) ? relayPublicKey(key_->text(), &error) : QString()); if (!error.isEmpty()) note(error); }
+    void updatePassphraseVisibility() {
+        const bool encrypted = relayKeyIsEncrypted(key_->text());
+        passphraseLabel_->setVisible(encrypted); passphrase_->setVisible(encrypted);
+        if (!encrypted) passphrase_->clear();
+    }
+    void refreshPublicKey() { updatePassphraseVisibility(); QString error; public_->setPlainText(QFileInfo::exists(key_->text()) ? relayPublicKey(key_->text(), &error) : QString()); if (!error.isEmpty()) note(error); }
     bool ensureKey() {
         QString error;
         if (key_->text().trimmed().isEmpty()) key_->setText(defaultKeyPath());
         if (!save()) return false;
         if (!QFileInfo::exists(key_->text()) && !createRelayKey(key_->text(), &error)) { note(error); return false; }
         const auto value = relayPublicKey(key_->text(), &error); if (value.isEmpty()) { note(error); return false; }
-        public_->setPlainText(value); return true;
+        public_->setPlainText(value); updatePassphraseVisibility(); return true;
     }
     bool save() {
         QString keyPath = key_->text().trimmed();
