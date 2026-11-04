@@ -1,4 +1,33 @@
-# AppImage runtime helpers
+# Build a Qt AppImage
+
+Run `./packaging/appimage/build.sh` from the repository root. It builds with
+Meson, stages a fresh install, bundles Qt using
+[linuxdeploy-plugin-qt](https://github.com/linuxdeploy/linuxdeploy-plugin-qt),
+and writes `dist/hexchat-ng-VERSION-ARCH.AppImage` plus a SHA-256 checksum.
+The packaging approach is adapted from `~/src/hexchat-ng/build-appimage.sh`.
+
+Install the normal [Qt build dependencies](../../src/fe-qt/README.md#build),
+plus curl, Python 3, Qt 6 qmake, patchelf, desktop-file-utils and file.
+Build on the oldest Linux distribution you intend to support; the build host
+determines the minimum glibc version. Native x86_64 and aarch64 are supported.
+
+Use `--help` for directory and Qt overrides. Additional arguments go to Meson
+setup, for example `-Dpublic-suffix-list=/usr/share/publicsuffix/public_suffix_list.dat`.
+Native add-ons are enabled. Python, Perl, Lua, FiSHLiM and sysinfo are disabled
+by default. Enabling scripting plugins requires separately bundling their
+runtimes; this script does not do that. Spell checking uses host dictionaries.
+Optional KDE image codecs (`kimg_*.so`) are excluded from the bundle to avoid
+pulling in unrelated host codecs and their dependencies. Standard Qt image
+format plugins remain included.
+
+Packaging tools are downloaded from upstream continuous releases on first use
+and cached in `build-appimage/tools/`. For controlled builds, prepopulate
+`TOOLS_DIR` with reviewed executable `linuxdeploy-ARCH.AppImage`,
+`linuxdeploy-plugin-qt-ARCH.AppImage` and
+`linuxdeploy-plugin-appimage-ARCH.AppImage` files. Packaging uses extract and
+run mode and does not require FUSE. Staged AppDirs are retained for inspection.
+
+## Historical runtime helpers
 
 The runtime bundling helpers in this directory can be reused for a Qt AppImage.
 `AppRun` launches `hexchat-ng`; the packager must bundle Qt and its platform

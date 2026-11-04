@@ -1,4 +1,5 @@
 /build
+/build-appimage/
 builddir/
 doxygen*.tmp
 html/

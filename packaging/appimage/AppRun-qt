@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+APPDIR="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
+export ZOITECHAT_LIBDIR="$APPDIR/usr/lib/zoitechat/plugins"
+export ZOITECHAT_EMOJI_FONT="${ZOITECHAT_EMOJI_FONT:-$APPDIR/usr/share/fonts/zoitechat/NotoColorEmoji.ttf}"
+export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+exec "$APPDIR/usr/bin/hexchat-ng" "$@"
