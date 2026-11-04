@@ -63,6 +63,7 @@ int qt_core_transfer_send(void *ptr, const char *nick, const char *file, int max
 {
     session *context = ptr;
     if (!context || !is_session(context) || !context->server->connected) return fail(error, capacity, "The original server is no longer connected.");
+    if (context->server->transport_send) return fail(error, capacity, "File transfers and DCC chat require a direct IRC connection.");
     if (!nick || !*nick || strlen(nick) >= NICKLEN || strpbrk(nick, " \t\r\n,") || !file || !*file || strlen(file) > 4096 || strpbrk(file, "\r\n")) return fail(error, capacity, "Invalid nickname or file path.");
     if (!g_file_test(file, G_FILE_TEST_IS_REGULAR)) return fail(error, capacity, "Choose a regular file to send.");
     dcc_send(context, (char *)nick, (char *)file, maxcps, !!passive); return 1;
@@ -72,6 +73,7 @@ int qt_core_direct_chat_start(void *ptr, const char *nick, int passive, char *er
 {
     session *context = ptr;
     if (!context || !is_session(context) || !context->server->connected) return fail(error, capacity, "The original server is no longer connected.");
+    if (context->server->transport_send) return fail(error, capacity, "File transfers and DCC chat require a direct IRC connection.");
     if (!nick || !*nick || strlen(nick) >= NICKLEN || strpbrk(nick, " \t\r\n,")) return fail(error, capacity, "Invalid nickname.");
     dcc_chat(context, (char *)nick, !!passive); return 1;
 }

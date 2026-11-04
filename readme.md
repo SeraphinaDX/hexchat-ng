@@ -12,7 +12,8 @@ protocol updates and other changes that fit this fork's direction.
 
 See the [Qt build and usage guide](src/fe-qt/README.md) for the `hexchat-ng`
 executable, dependencies and tests. The Qt frontend includes typing indicators
-for channels and private conversations.
+for channels and private conversations, plus native [AnsiChat SSH relay support](src/fe-qt/RELAY.md)
+with public-key generation, copying and export.
 
 Copyright © 2026 Britney Lozza. Existing contributor notices are retained below.
 
@@ -57,8 +58,8 @@ meson compile -C build-qt
 ./build-qt/src/fe-qt/hexchat-ng --no-auto
 ```
 
-Install Meson, Ninja, a C17/C++17 compiler, Qt 6.2 or newer, Pango/Cairo,
-GLib/GIO, gettext, libarchive and OpenSSL development packages. Enchant 2 adds
+Install Meson, Ninja, a C17/C++17 compiler, Qt 6.2 or newer (including Network), Pango/Cairo,
+GLib/GIO, gettext, libarchive, OpenSSL 1.1.1+ and libssh2 1.10+ development packages. Enchant 2 adds
 spell checking. See [the build guide](src/fe-qt/README.md) for plugin options,
 platform dependencies, offline builds and tests.
 

@@ -54,6 +54,8 @@ const char *qt_fe_pick_file(const char *title, const char *initial, int flags);
 int qt_fe_is_active(void);
 void qt_fe_network_manager(void);
 void qt_fe_startup_state(int level);
+void qt_fe_relay_startup(int automatic);
+void qt_fe_relay_shutdown(void);
 
 /* Implemented on the C side; called by Qt controls. */
 void qt_core_activate(void *session);

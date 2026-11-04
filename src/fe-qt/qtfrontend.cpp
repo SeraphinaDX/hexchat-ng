@@ -8,6 +8,7 @@
 #include "panedrag.h"
 #include "buffersearch.h"
 #include "networkdialog.h"
+#include "relaybackend.h"
 #include "chatinput.h"
 #include "spellchecker.h"
 #include "chatbackground.h"
@@ -920,6 +921,7 @@ public:
         auto *file = view->menuBar()->addMenu(QStringLiteral("&hexchat-ng"));
         file->setObjectName(QStringLiteral("detachedZoitechatMenu"));
         addAction(file, QStringLiteral("Network Li&st"), QStringLiteral("detachedNetworkList"), QKeySequence(QStringLiteral("Ctrl+S")), [view]() { showNetworkManager(view); });
+        addAction(file, QStringLiteral("AnsiChat &Relays…"), QStringLiteral("detachedRelays"), {}, [view]() { showRelayManager(view); });
         file->addSeparator();
         auto *newMenu = file->addMenu(QStringLiteral("&New"));
         addAction(newMenu, QStringLiteral("Server Tab"), QStringLiteral("detachedNewServerTab"), QKeySequence(QStringLiteral("Ctrl+T")), [this, target]() { if (alive(target)) qt_core_new_tab(target.key, true); });
@@ -2027,6 +2029,7 @@ private:
         auto *networks = addAction(zoitechat, QStringLiteral("Network Li&st"), QStringLiteral("networkList"),
             QKeySequence(QStringLiteral("Ctrl+S")), [this]() { showNetworkManager(this); });
         networks->setShortcuts({QKeySequence(QStringLiteral("Ctrl+S")), QKeySequence(QStringLiteral("Ctrl+Shift+N"))});
+        addAction(zoitechat, QStringLiteral("AnsiChat &Relays…"), QStringLiteral("ansiChatRelays"), {}, [this]() { showRelayManager(this); });
         zoitechat->addSeparator();
         auto *newMenu = zoitechat->addMenu(QStringLiteral("&New")); newMenu->setObjectName(QStringLiteral("newMenu"));
         addAction(newMenu, QStringLiteral("Server Tab"), QStringLiteral("newServerTab"), QKeySequence(QStringLiteral("Ctrl+T")),
@@ -3055,10 +3058,12 @@ void qt_fe_startup_state(int level)
 }
 int qt_fe_run(void) { return app ? app->exec() : 1; }
 void qt_fe_quit(void) { if (app) app->quit(); }
+void qt_fe_relay_startup(int automatic) { startRelayBackends(ui(), automatic); }
+void qt_fe_relay_shutdown(void) { shutdownRelayBackends(); }
 void qt_fe_network_manager(void) { showNetworkManager(ui()); }
 void qt_fe_new_session(void *sess, const char *name, int focus)
 { ui()->addSession(sess, QString::fromUtf8(name ? name : "Server"), focus != 0); }
-void qt_fe_remove_session(void *sess) { qt_fe_moderation_closed(sess); if (window) window->removeSession(sess); }
+void qt_fe_remove_session(void *sess) { relaySessionClosed(sess); qt_fe_moderation_closed(sess); if (window) window->removeSession(sess); }
 void qt_fe_rename_session(void *sess, const char *name)
 { if (window) window->renameSession(sess, QString::fromUtf8(name ? name : "Server")); }
 void qt_fe_select_session(void *sess) { if (window) window->select(sess); }

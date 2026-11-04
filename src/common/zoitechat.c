@@ -391,7 +391,7 @@ lag_check (void)
 	while (list)
 	{
 		serv = list->data;
-		if (serv->connected && serv->end_of_motd)
+		if (serv->connected && serv->end_of_motd && !serv->transport_send)
 		{
 			lag = now - serv->ping_recv;
 			ping_timeout = (unsigned long) prefs.hex_net_ping_timeout * 1000;

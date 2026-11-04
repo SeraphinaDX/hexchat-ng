@@ -761,6 +761,13 @@ cmd_dcc (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 	int goodtype;
 	struct DCC *dcc = 0;
 	char *type = word[2];
+	if (sess->server->transport_send &&
+	    (!g_ascii_strcasecmp(type, "SEND") || !g_ascii_strcasecmp(type, "PSEND") ||
+	     !g_ascii_strcasecmp(type, "CHAT") || !g_ascii_strcasecmp(type, "PCHAT")))
+	{
+		PrintText(sess, _("File transfers and DCC chat require a direct IRC connection."));
+		return TRUE;
+	}
 	if (*type)
 	{
 		if (!g_ascii_strcasecmp (type, "HELP"))
@@ -3633,8 +3640,6 @@ cmd_server (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 		}
 	}
 
-	serv->dont_use_proxy = no_proxy;
-
 	if (!parse_irc_url (word[2 + offset], &server_name, &port, &channel, &key, &use_ssl))
 	{
 		is_url = FALSE;
@@ -3650,6 +3655,14 @@ cmd_server (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 	
 	if (!(*server_name))
 		return FALSE;
+
+	/* Direct IRC must never replace an application's relay transport. */
+	if (serv->transport_send)
+	{
+		sess = new_ircwindow(NULL, NULL, SESS_SERVER, TRUE);
+		serv = sess->server;
+	}
+	serv->dont_use_proxy = no_proxy;
 
 	sess->server->network = NULL;
 

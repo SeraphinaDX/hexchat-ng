@@ -274,6 +274,9 @@ tcp_send_len (server *serv, char *buf, int len)
 	char *dbuf;
 	int noqueue = !serv->outbound_queue;
 
+	if (serv->transport_send)
+		return serv->transport_send(serv, buf, len);
+
 	if (!prefs.hex_net_throttle)
 		return server_send_real (serv, buf, len);
 

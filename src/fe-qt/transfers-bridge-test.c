@@ -13,6 +13,7 @@ static int accepted, resumed, aborted, sent, chats, queries;
 session *open_query(server *serv, char *nick, gboolean focus) { (void)serv; (void)nick; (void)focus; ++queries; return &context; }
 void dcc_chat(session *sess, char *nick, int passive) { (void)sess; (void)nick; (void)passive; ++chats; }
 static char destination[1024];
+static int relay_send(server *serv, char *line, int length) { (void)serv; (void)line; return length; }
 gboolean is_dcc(struct DCC *dcc) { return g_slist_find(dcc_list, dcc) != NULL; }
 int is_session(session *sess) { return sess == &context; }
 void qt_fe_transfers_changed(void) {}
@@ -54,6 +55,10 @@ int main(void)
     char *path; int fd = g_file_open_tmp("qt-transfer-XXXXXX", &path, NULL); CHECK(fd >= 0); close(fd);
     CHECK(qt_core_transfer_send(&context, "Alice", path, 0, 0, error, sizeof(error)) && sent == 1);
     CHECK(!qt_core_transfer_send(&context, "Alice Bob", path, 0, 0, error, sizeof(error)) && sent == 1);
+    serv.transport_send = relay_send;
+    CHECK(!qt_core_transfer_send(&context, "Alice", path, 0, 0, error, sizeof(error)) && sent == 1 && strstr(error, "direct IRC"));
+    CHECK(!qt_core_direct_chat_start(&context, "Alice", 0, error, sizeof(error)) && chats == 1);
+    serv.transport_send = NULL;
     serv.connected = 0; CHECK(!qt_core_transfer_send(&context, "Alice", path, 0, 0, error, sizeof(error)));
     g_remove(path); g_free(path); g_slist_free(dcc_list); dcc_list = NULL; qt_core_transfer_track(&dcc, 1);
     CHECK(!qt_core_transfer_action(second, 0, "", error, sizeof(error))); g_slist_free(sess_list); return 0;

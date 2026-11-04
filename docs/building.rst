@@ -8,8 +8,9 @@ Dependencies
 ------------
 
 Install a C17/C++17 compiler, Meson, Ninja, pkg-config, Qt 6.2 or newer
-(Core, Gui, Widgets and the resource compiler), Pango/Cairo 1.44 or newer,
-GLib/GIO development tools, gettext, libarchive and OpenSSL. Enchant 2 enables
+(Core, Gui, Widgets, Network and the resource compiler), Pango/Cairo 1.44 or newer,
+GLib/GIO development tools, gettext, libarchive, OpenSSL 1.1.1 or newer, and
+libssh2 1.10 or newer for native AnsiChat SSH relay connections. Enchant 2 enables
 optional spell checking. Scripting plugins need their language development
 packages; disable plugins for the smallest build.
 

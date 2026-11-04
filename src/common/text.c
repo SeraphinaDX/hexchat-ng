@@ -161,6 +161,9 @@ scrollback_save (session *sess, char *text, time_t stamp)
 	GOutputStream *ostream;
 	char *buf;
 
+	/* Relay history is authoritative; do not maintain a second replay cache. */
+	if (sess->server->transport_send) return;
+
 	if (sess->type == SESS_SERVER && prefs.hex_gui_tab_server == 1)
 		return;
 
@@ -225,6 +228,8 @@ scrollback_load (session *sess)
 	gchar *buf, *text;
 	gint lines = 0;
 	time_t stamp = 0;
+
+	if (sess->server->transport_send) return;
 
 	if (sess->text_scrollback == SET_DEFAULT)
 	{
@@ -836,7 +841,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 
 static void
 PrintTextTimeStampWithMessage (session *sess, char *text, time_t timestamp,
-									  const reply_item *message)
+									  const reply_item *message, gboolean no_activity)
 {
 	if (!sess)
 	{
@@ -857,14 +862,20 @@ PrintTextTimeStampWithMessage (session *sess, char *text, time_t timestamp,
 
 	log_write (sess, text, timestamp);
 	scrollback_save (sess, text, timestamp);
-	fe_print_text_with_message (sess, text, timestamp, FALSE, message);
+	fe_print_text_with_message (sess, text, timestamp, no_activity, message);
 	g_free (text);
 }
 
 void
 PrintTextTimeStamp (session *sess, char *text, time_t timestamp)
 {
-	PrintTextTimeStampWithMessage (sess, text, timestamp, NULL);
+	PrintTextTimeStampWithMessage (sess, text, timestamp, NULL, FALSE);
+}
+
+void
+PrintTextTimeStampNoActivity (session *sess, char *text, time_t timestamp)
+{
+	PrintTextTimeStampWithMessage (sess, text, timestamp, NULL, TRUE);
 }
 
 void
@@ -1999,7 +2010,7 @@ display_event (session *sess, int event, char **args,
 	}
 
 	if (o[0])
-		PrintTextTimeStampWithMessage (sess, o, timestamp, message);
+		PrintTextTimeStampWithMessage (sess, o, timestamp, message, FALSE);
 }
 
 int

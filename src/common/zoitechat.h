@@ -487,6 +487,8 @@ typedef struct session
 
 typedef struct server
 {
+	/* Optional application transport (e.g. an SSH relay); UTF-8 IRC lines. */
+	int (*transport_send)(struct server *, char *line, int length);
 	/*  server control operations (in server*.c) */
 	void (*connect)(struct server *, char *hostname, int port, int no_login);
 	void (*disconnect)(struct session *, int sendquit, int err);

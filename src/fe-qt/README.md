@@ -15,10 +15,9 @@ Copyright © 2026 Britney Lozza.
 
 ## Build
 
-Install Meson, Ninja, a C17/C++17 compiler, Qt 6.2 or newer (Core, Gui, Widgets
-and resource compiler), Pango/Cairo 1.44 or newer, GLib/GIO development tools
-(including `glib-genmarshal`), gettext, libarchive, OpenSSL and the normal
-ZoiteChat build dependencies. Enchant 2 enables optional spell checking.
+Install Meson, Ninja, a C17/C++17 compiler, Qt 6.2 or newer (Core, Gui, Widgets,
+Network and resource compiler), Pango/Cairo 1.44 or newer, GLib/GIO development tools
+(including `glib-genmarshal`), gettext, libarchive, OpenSSL 1.1.1 or newer, and libssh2 1.10 or newer. Enchant 2 enables optional spell checking.
 
 To build without optional plugins:
 
@@ -67,6 +66,14 @@ text. GTK theme settings remain in the shared configuration for compatibility.
 The build installs the `hexchat-ng` executable, desktop launcher, app metadata,
 icons and manual page. The former GTK platform packagers are archived under
 [packaging/legacy-gtk](../../packaging/legacy-gtk/README.md) for porting reference.
+
+## AnsiChat SSH relay
+
+Use **hexchat-ng → AnsiChat Relays…** to configure a persistent relay connection.
+**Copy Public Key** and **Export Public Key…** make it easy to enroll this client
+on your relay server. Host keys are verified before authentication. See the
+[relay guide](RELAY.md) for setup, reconnect behavior, key storage and protocol
+coverage. Direct IRC and relay connections can be used together.
 
 ## Tests
 

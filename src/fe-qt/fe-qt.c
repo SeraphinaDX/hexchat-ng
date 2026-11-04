@@ -17,6 +17,7 @@
 #include "../common/util.h"
 #include "../common/fe.h"
 #include "qt-bridge.h"
+#include "relay-bridge.h"
 #include "tools-bridge.h"
 #include "moderation-bridge.h"
 #include "friends-bridge.h"
@@ -89,9 +90,9 @@ void fe_init(void)
 {
   qt_fe_initialize(&qt_argc, qt_argv);
 }
-void fe_main(void) { qt_fe_startup_state(startup_minimize); (void)qt_fe_run(); }
+void fe_main(void) { qt_fe_relay_startup(!arg_dont_autoconnect); qt_fe_startup_state(startup_minimize); (void)qt_fe_run(); }
 void fe_exit(void) { qt_fe_quit(); }
-void fe_cleanup(void) { }
+void fe_cleanup(void) { qt_fe_relay_shutdown(); }
 
 void fe_new_window(session *sess, int focus)
 {
@@ -276,6 +277,7 @@ void qt_core_activate(void *ptr)
   session *sess = ptr;
   if (!sess || !is_session(sess)) return;
   current_tab = current_sess = sess;
+  if (sess->server->transport_send) qt_relay_read(sess);
   sess->tab_state = TAB_STATE_NONE;
   sess->last_tab_state = TAB_STATE_NONE;
   lastact_update(sess);

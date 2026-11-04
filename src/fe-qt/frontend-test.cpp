@@ -10,6 +10,7 @@
 #include "transfers-test-engine.h"
 #include "conversationoptions-test-engine.h"
 #include "preferences-test-engine.h"
+#include "relay-test-engine.h"
 #include <QFile>
 #include <QTextBlock>
 #include <QPointer>
@@ -162,8 +163,8 @@ int main(int argc, char **argv)
             ids.append(item->isSeparator() ? QStringLiteral("|") : item->menu() ? item->menu()->objectName() : item->objectName());
         return ids;
     };
-    verify(menuIds("zoitechatMenu") == QStringList({QStringLiteral("networkList"), QStringLiteral("|"), QStringLiteral("newMenu"), QStringLiteral("|"),
-           QStringLiteral("loadPlugin"), QStringLiteral("|"), QStringLiteral("detachConversation"), QStringLiteral("closeConversation"), QStringLiteral("|"), QStringLiteral("quit")}), "hexchat-ng menu matches original complete file menu order");
+    verify(menuIds("zoitechatMenu") == QStringList({QStringLiteral("networkList"), QStringLiteral("ansiChatRelays"), QStringLiteral("|"), QStringLiteral("newMenu"), QStringLiteral("|"),
+           QStringLiteral("loadPlugin"), QStringLiteral("|"), QStringLiteral("detachConversation"), QStringLiteral("closeConversation"), QStringLiteral("|"), QStringLiteral("quit")}), "hexchat-ng file menu includes relay settings in order");
     verify(menuIds("viewMenu").mid(0, 7) == QStringList({QStringLiteral("showMenu"), QStringLiteral("showTopic"), QStringLiteral("showUsers"), QStringLiteral("showUserButtons"), QStringLiteral("showChannelModes"), QStringLiteral("channelSwitcherMenu"), QStringLiteral("networkMetersMenu")}), "supported native View controls retain original order");
     verify(menuIds("networkMetersMenu") == QStringList({QStringLiteral("networkMeter0"), QStringLiteral("networkMeter1"), QStringLiteral("networkMeter2"), QStringLiteral("networkMeter3")}), "Network Meters submenu contains all native modes");
     verify(menuIds("newMenu") == QStringList({QStringLiteral("newServerTab"), QStringLiteral("newChannelTab"), QStringLiteral("newServerWindow"), QStringLiteral("newChannelWindow")}), "New submenu includes original window actions");
@@ -1074,7 +1075,7 @@ int main(int argc, char **argv)
     auto *detachedFile = detached->findChild<QMenu *>(QStringLiteral("detachedZoitechatMenu"));
     QStringList detachedLabels;
     for (auto *entry : detachedFile->actions()) detachedLabels.append(entry->isSeparator() ? QStringLiteral("|") : QString(entry->text()).remove(QLatin1Char('&')));
-    verify(detachedLabels == QStringList({QStringLiteral("Network List"), QStringLiteral("|"), QStringLiteral("New"), QStringLiteral("|"), QStringLiteral("Load Plugin or Script…"), QStringLiteral("|"), QStringLiteral("Attach"), QStringLiteral("Close"), QStringLiteral("|"), QStringLiteral("Quit")}), "detached window keeps the original file menu structure");
+    verify(detachedLabels == QStringList({QStringLiteral("Network List"), QStringLiteral("AnsiChat Relays…"), QStringLiteral("|"), QStringLiteral("New"), QStringLiteral("|"), QStringLiteral("Load Plugin or Script…"), QStringLiteral("|"), QStringLiteral("Attach"), QStringLiteral("Close"), QStringLiteral("|"), QStringLiteral("Quit")}), "detached window includes relay settings in the file menu");
     qt_fe_topic(channel, formattedTopic.toUtf8().constData());
     verify(detached->topic->text() == formattedTopic, "detached topics receive confirmed raw updates immediately");
     for (auto &pref : PreferencesTestEngine::rows) if (QByteArray(pref.key) == "text_stripcolor_topic") qstrncpy(pref.value, "1", sizeof(pref.value));

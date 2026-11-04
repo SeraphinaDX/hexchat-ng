@@ -538,7 +538,7 @@ servlist_connect_with_password (session *sess, ircnet *net, gboolean join, const
 	char *port;
 	server *serv;
 
-	if (!sess)
+	if (!sess || sess->server->transport_send)
 		sess = new_ircwindow (NULL, NULL, SESS_SERVER, TRUE);
 
 	serv = sess->server;

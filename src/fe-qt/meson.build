@@ -1,5 +1,5 @@
 # A separate executable sharing the ZoiteChat C core.
-qt6_widgets = dependency('qt6', modules: ['Core', 'Gui', 'Widgets'], version: '>= 6.2')
+qt6_widgets = dependency('qt6', modules: ['Core', 'Gui', 'Widgets', 'Network'], version: '>= 6.2')
 qt_pango = dependency('pangocairo', version: '>= 1.44')
 qt_menumarkup = static_library('qt-menumarkup', 'menumarkup.cpp', dependencies: [qt6_widgets, qt_pango])
 qt_menumarkup_dep = declare_dependency(link_with: qt_menumarkup, dependencies: [qt6_widgets, qt_pango])
@@ -18,10 +18,16 @@ qt_spellchecker_test = executable('qt-spellchecker-test',
   sources: ['spellchecker-test.cpp', 'chatinput.cpp', 'irclineedit.cpp', 'ircformat.cpp'],
   dependencies: [qt6_widgets, qt_spellchecker_dep])
 test('qt-spellchecker', qt_spellchecker_test, env: ['QT_QPA_PLATFORM=offscreen'])
+qt_relay_ssh = dependency('libssh2', version: '>= 1.10.0')
+qt_relay_crypto = dependency('openssl', version: '>= 1.1.1')
+qt_relay = static_library('qt-relay',
+  sources: ['relaykeys.cpp', 'relaytransport.cpp', 'relaybackend.cpp', 'relaydialog.cpp'],
+  dependencies: [qt6_widgets, qt_relay_ssh, qt_relay_crypto])
+qt_relay_dep = declare_dependency(link_with: qt_relay, dependencies: [qt6_widgets, qt_relay_ssh, qt_relay_crypto])
 zoitechat_qt = executable('hexchat-ng',
-  sources: [qt_resources, 'alerts-bridge.c', 'activity-bridge.c', 'keypress-bridge.c', 'command-bridge.c', 'completion-bridge.c', 'preferences-bridge.c', 'fe-qt.c', 'typing-bridge.c', 'qtfrontend.cpp', 'chatbackground.cpp', 'buffersearch.cpp', 'ircformat.cpp', 'irclineedit.cpp', 'chatinput.cpp', 'nicklist.cpp',
+  sources: [qt_resources, 'alerts-bridge.c', 'activity-bridge.c', 'keypress-bridge.c', 'command-bridge.c', 'completion-bridge.c', 'preferences-bridge.c', 'fe-qt.c', 'relay-bridge.c', 'typing-bridge.c', 'qtfrontend.cpp', 'chatbackground.cpp', 'buffersearch.cpp', 'ircformat.cpp', 'irclineedit.cpp', 'chatinput.cpp', 'nicklist.cpp',
             'network-bridge.c', 'networkdialog.cpp', 'tools-bridge.c', 'irctools.cpp', 'moderation-bridge.c', 'moderation.cpp', 'desktopintegration.cpp', 'urlhistory.cpp', 'friends-bridge.c', 'friends.cpp', 'pastepreview.cpp', 'customization-bridge.c', 'customization.cpp', 'textevents-bridge.c', 'textevents.cpp', 'paletteeditor.cpp', 'addons-bridge.c', 'addons.cpp', 'conversationoptions-bridge.c', 'transfers-bridge.c', 'transfers.cpp', 'characterchart.cpp', 'conversationoptions.cpp', 'keybindings.cpp'],
-  dependencies: [zoitechat_common_dep, qt6_widgets, qt_spellchecker_dep, qt_menumarkup_dep],
+  dependencies: [zoitechat_common_dep, qt6_widgets, qt_spellchecker_dep, qt_menumarkup_dep, qt_relay_dep],
   include_directories: config_h_include,
   c_args: ['-DHAVE_CONFIG_H'],
   # This frontend adapter uses C11; the original engine stays GNU89.
@@ -59,7 +65,7 @@ test('qt-nicklist', qt_nicklist_test, env: ['QT_QPA_PLATFORM=offscreen'])
 # Exercise the real window against a fake engine, including modal-event races.
 qt_frontend_test = executable('qt-frontend-test',
   sources: [qt_resources, 'frontend-test.cpp', 'chatbackground.cpp', 'buffersearch.cpp', 'ircformat.cpp', 'irclineedit.cpp', 'chatinput.cpp', 'nicklist.cpp', 'irctools.cpp', 'moderation.cpp', 'desktopintegration.cpp', 'urlhistory.cpp', 'friends.cpp', 'pastepreview.cpp', 'customization.cpp', 'textevents.cpp', 'paletteeditor.cpp', 'addons.cpp', 'transfers.cpp', 'characterchart.cpp', 'conversationoptions.cpp', 'keybindings.cpp'],
-  dependencies: [qt6_widgets, qt_spellchecker_dep, qt_menumarkup_dep, dependency('glib-2.0')],
+  dependencies: [qt6_widgets, qt_spellchecker_dep, qt_menumarkup_dep, qt_relay_dep, dependency('glib-2.0')],
 )
 test('qt-frontend', qt_frontend_test, env: ['QT_QPA_PLATFORM=offscreen'], timeout: 30)
 
@@ -291,3 +297,12 @@ qt_typing_bridge_test = executable('qt-typing-bridge-test',
   override_options: ['c_std=gnu11'],
 )
 test('qt-typing-bridge', qt_typing_bridge_test)
+
+qt_relay_test = executable('qt-relay-test', sources: ['relay-test.cpp'], dependencies: [qt_relay_dep])
+test('qt-relay', qt_relay_test, env: ['QT_QPA_PLATFORM=offscreen'])
+
+if get_option('plugin') and host_machine.system() == 'linux' and not meson.is_cross_build()
+  test('qt-relay-runtime', find_program('python3'),
+    args: [meson.current_source_dir() / 'relay-runtime-test.py', zoitechat_qt, qt_relay_test],
+    suite: 'runtime', timeout: 100, is_parallel: false)
+endif
