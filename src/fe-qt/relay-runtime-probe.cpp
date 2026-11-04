@@ -5,6 +5,7 @@
 #include "relay-bridge.h"
 #include <QApplication>
 #include <QTextBrowser>
+#include <QTextDocument>
 #include <QMessageBox>
 #include <QMainWindow>
 #include <QDialog>
@@ -30,6 +31,56 @@ static QString contents(const QString &needle) {
 static int tick(void *) {
     if (++ticks > 800) { report("FAIL timeout"); return 0; }
     const auto scenario = QByteArray(std::getenv("QT_RELAY_SCENARIO"));
+    if (scenario == "format") {
+        auto *server = qt_relay_create_server("Relay colours", "me");
+        auto *channel = qt_relay_target(server, "#colours", 1);
+        auto *query = qt_relay_target(server, "peer", 0);
+        struct Example { const char *kind, *event, *nick; bool dialog; int highlight; };
+        const Example examples[] = {
+            {"message", "Channel Message", "peer", false, 0},
+            {"message", "Channel Msg Hilight", "peer", false, 1},
+            {"message", "Your Message", "me", false, 0},
+            {"action", "Channel Action", "peer", false, 0},
+            {"action", "Channel Action Hilight", "peer", false, 1},
+            {"action", "Your Action", "me", false, 0},
+            {"message", "Private Message to Dialog", "peer", true, 0},
+            {"action", "Private Action to Dialog", "peer", true, 0},
+            {"message", "Your Message", "me", true, 0},
+            {"action", "Your Action", "me", true, 0},
+            {"notice", "Notice", "peer", true, 0},
+            {"notice", "Channel Notice", "peer", false, 0},
+        };
+        for (int colours : {0, 1}) for (int strip : {0, 1}) for (const auto &example : examples) {
+            void *session = example.dialog ? query : channel;
+            qt_fe_select_session(session); ph->zoitechat_set_context(ph, static_cast<zoitechat_context *>(session));
+            ph->zoitechat_command(ph, colours ? "set text_color_nicks 1" : "set text_color_nicks 0");
+            ph->zoitechat_command(ph, strip ? "set text_stripcolor_msg 1" : "set text_stripcolor_msg 0");
+            qt_fe_clear(session);
+            const char *text = "colour test \00304red\017 and \002bold\002";
+            zoitechat_event_attrs attrs{123};
+            if (!std::strcmp(example.event, "Channel Notice"))
+                ph->zoitechat_emit_print_attrs(ph, &attrs, example.event, example.nick, "#colours", text, nullptr);
+            else
+                ph->zoitechat_emit_print_attrs(ph, &attrs, example.event, example.nick, text, "", "", nullptr);
+            QTextBrowser *chat = nullptr;
+            for (auto *widget : QApplication::allWidgets()) {
+                auto *browser = qobject_cast<QTextBrowser *>(widget);
+                if (browser && browser->toPlainText().contains("colour test")) { chat = browser; break; }
+            }
+            if (!chat) { report("FAIL direct event output missing"); return 0; }
+            const auto expected = chat->document()->toHtml();
+            for (int replay : {0, 1}) {
+                qt_fe_clear(session);
+                qt_relay_chat_message(session, example.kind, example.nick, text, 123, replay, 0, example.highlight);
+                if (chat->document()->toHtml() != expected) {
+                    std::fprintf(stderr, "DIRECT: %s\nRELAY: %s\n", expected.toUtf8().constData(), chat->document()->toHtml().toUtf8().constData());
+                    const auto error = QByteArray("FAIL relay formatting differs: ") + example.event + " colours=" + QByteArray::number(colours) + " strip=" + QByteArray::number(strip) + " replay=" + QByteArray::number(replay);
+                    report(error.constData()); return 0;
+                }
+            }
+        }
+        report("PASS relay colours match direct IRC for live messages and history"); return 0;
+    }
     if (scenario == "encrypted" && ticks == 1) {
         QWidget *owner = nullptr;
         for (auto *widget : QApplication::topLevelWidgets()) if (qobject_cast<QMainWindow *>(widget)) { owner = widget; break; }

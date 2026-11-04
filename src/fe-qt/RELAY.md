@@ -47,6 +47,11 @@ same time. Drafts and conversations survive a lost relay connection, and retaine
 history is deduplicated when the client attaches again. Historical messages do
 not generate desktop notifications or unread alerts.
 
+Relay chat uses the same text-event templates, nickname colours and colour-strip
+settings as direct IRC. This includes live and replayed messages, actions,
+notices and highlights; changes to your text-event templates apply to newly
+displayed relay messages too.
+
 **Detach**, `/quit`, and the ordinary Disconnect action detach this client from
 the relay. They do not shut down the relay's IRC connections. Closing the whole
 application also detaches without sending IRC QUIT. Closing an individual joined

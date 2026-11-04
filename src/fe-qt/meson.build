@@ -25,7 +25,7 @@ qt_relay = static_library('qt-relay',
   dependencies: [qt6_widgets, qt_relay_ssh, qt_relay_crypto])
 qt_relay_dep = declare_dependency(link_with: qt_relay, dependencies: [qt6_widgets, qt_relay_ssh, qt_relay_crypto])
 zoitechat_qt = executable('hexchat-ng',
-  sources: [qt_resources, 'alerts-bridge.c', 'activity-bridge.c', 'keypress-bridge.c', 'command-bridge.c', 'completion-bridge.c', 'preferences-bridge.c', 'fe-qt.c', 'relay-bridge.c', 'typing-bridge.c', 'qtfrontend.cpp', 'chatbackground.cpp', 'buffersearch.cpp', 'ircformat.cpp', 'irclineedit.cpp', 'chatinput.cpp', 'nicklist.cpp',
+  sources: [qt_resources, 'alerts-bridge.c', 'activity-bridge.c', 'keypress-bridge.c', 'command-bridge.c', 'completion-bridge.c', 'preferences-bridge.c', 'fe-qt.c', 'relay-bridge.c', 'relayformat.c', 'typing-bridge.c', 'qtfrontend.cpp', 'chatbackground.cpp', 'buffersearch.cpp', 'ircformat.cpp', 'irclineedit.cpp', 'chatinput.cpp', 'nicklist.cpp',
             'network-bridge.c', 'networkdialog.cpp', 'tools-bridge.c', 'irctools.cpp', 'moderation-bridge.c', 'moderation.cpp', 'desktopintegration.cpp', 'urlhistory.cpp', 'friends-bridge.c', 'friends.cpp', 'pastepreview.cpp', 'customization-bridge.c', 'customization.cpp', 'textevents-bridge.c', 'textevents.cpp', 'paletteeditor.cpp', 'addons-bridge.c', 'addons.cpp', 'conversationoptions-bridge.c', 'transfers-bridge.c', 'transfers.cpp', 'characterchart.cpp', 'conversationoptions.cpp', 'keybindings.cpp'],
   dependencies: [zoitechat_common_dep, qt6_widgets, qt_spellchecker_dep, qt_menumarkup_dep, qt_relay_dep],
   include_directories: config_h_include,
@@ -305,4 +305,7 @@ if get_option('plugin') and host_machine.system() == 'linux' and not meson.is_cr
   test('qt-relay-runtime', find_program('python3'),
     args: [meson.current_source_dir() / 'relay-runtime-test.py', zoitechat_qt, qt_relay_test],
     suite: 'runtime', timeout: 100, is_parallel: false)
+  test('qt-relay-format-runtime', find_program('python3'),
+    args: [meson.current_source_dir() / 'relay-format-runtime-test.py', zoitechat_qt],
+    suite: 'runtime', timeout: 45, is_parallel: false)
 endif

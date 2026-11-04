@@ -346,8 +346,13 @@ qreal eventHeaderWidth(const QTextBlock &block)
 void indentBlock(const QTextBlock &block, qreal column, qreal header)
 {
     auto format = block.blockFormat();
-    format.setLeftMargin(header >= 0 ? column : 0);
-    format.setTextIndent(header >= 0 ? -header - 8 : 0);
+    const auto first = block.begin().fragment();
+    const bool timestamped = first.isValid() && first.charFormat().boolProperty(IrcTimestampProperty);
+    const qreal margin = timestamped ? qMin(column, header + 8) : column;
+    format.setLeftMargin(header >= 0 ? margin : 0);
+    // Keep clocks at the left edge and give each nickname a small separator,
+    // rather than padding short nicknames to the longest one in the transcript.
+    format.setTextIndent(header >= 0 ? (timestamped ? -margin : -header - 8) : 0);
     if (header >= 0 && column > 0) {
         QTextOption::Tab tab; tab.position = header + 8; tab.type = QTextOption::LeftTab;
         format.setTabPositions({tab});

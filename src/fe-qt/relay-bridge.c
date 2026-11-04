@@ -10,6 +10,7 @@
 #include "../common/ignore.h"
 #include "qt-bridge.h"
 #include "relay-bridge.h"
+#include "relayformat.h"
 #include <string.h>
 static int relay_send(server *serv, char *line, int length) { return qt_relay_send_line(serv, line, length); }
 static void relay_connect(server *serv, char *host, int port, int login) { (void)host; (void)port; (void)login; qt_relay_reconnect(serv); }
@@ -116,6 +117,14 @@ void qt_relay_message(void *ptr, const char *formatted, time_t stamp, int replay
         if (highlight) sess->tab_state |= TAB_STATE_NEW_HILIGHT;
         fe_set_tab_color(sess, sess == current_tab ? FE_COLOR_NONE : highlight ? FE_COLOR_NEW_HILIGHT : FE_COLOR_NEW_MSG | FE_COLOR_FLAG_NOOVERRIDE);
     }
+}
+void qt_relay_chat_message(void *ptr, const char *kind, const char *nick, const char *text,
+                           time_t stamp, int replay, int unread, int highlight)
+{
+    if (!is_session(ptr)) return;
+    char formatted[4096];
+    qt_relay_format_message(ptr, kind, nick, text, highlight, formatted, sizeof(formatted));
+    if (formatted[0]) qt_relay_message(ptr, formatted, stamp, replay, unread, highlight);
 }
 void qt_relay_typing(void *ptr, const char *const *nicks, int count)
 {

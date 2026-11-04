@@ -290,11 +290,6 @@ void RelayBackend::message(Connection *c, QJsonObject m, bool replay) {
         remote.hidden.remove(key);
     }
     void *session = qt_relay_target(remote.server, target.toUtf8().constData(), remote.joined.value(key)); remote.targets[key] = session; remote.targetNames[key] = target;
-    QString formatted;
-    if (kind == "message") formatted = "<" + nick + "> " + text;
-    else if (kind == "action") formatted = "* " + nick + " " + text;
-    else if (kind == "notice") formatted = "-" + nick + "- " + text;
-    else formatted = text;
     // Match direct IRC: historical and own messages never trigger notifications.
     const bool own = targetKey(nick) == targetKey(remote.nick);
     if (!own && !nick.isEmpty()) {
@@ -304,7 +299,8 @@ void RelayBackend::message(Connection *c, QJsonObject m, bool replay) {
     const bool unread = !history && !own && !m.value("SuppressUnread").toBool() && kind != "system";
     const bool mention = m.value("Mention").toBool() || (!remote.nick.isEmpty() && text.contains(remote.nick, Qt::CaseInsensitive));
     const auto timestamp = QDateTime::fromString(m.value("Time").toString(), Qt::ISODateWithMs);
-    qt_relay_message(session, formatted.toUtf8().constData(), timestamp.isValid() ? timestamp.toSecsSinceEpoch() : time(nullptr), history, unread, mention);
+    qt_relay_chat_message(session, kind.toUtf8().constData(), nick.toUtf8().constData(), text.toUtf8().constData(),
+                          timestamp.isValid() ? timestamp.toSecsSinceEpoch() : time(nullptr), history, unread, mention);
     if (unread && !m.value("SuppressNotify").toBool()) qt_fe_message_alert(session, text.toUtf8().constData(), mention, !channelTarget(target));
     if (!id.isEmpty()) {
         c->seenIDs.insert(id); c->seenOrder.enqueue(id); remote.lastIDs[key] = id;

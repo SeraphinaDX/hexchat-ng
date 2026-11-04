@@ -129,6 +129,30 @@ int main(int argc, char **argv)
     ok &= verify(indented.toPlainText() == retainedText && indented.begin().blockFormat().leftMargin() == 0, "disabling indentation preserves transcript text");
     appendIrcMessage(&indented, QStringLiteral("Nick\tfirst\nplain continuation"), 0, palette, false, {}, 160);
     ok &= verify(indented.lastBlock().blockFormat().leftMargin() == 0 && indented.lastBlock().previous().blockFormat().leftMargin() > 0, "multiline output formats each paragraph using its own separator");
+    QTextDocument clockColumns;
+    clockColumns.setDefaultFont(QFont(QStringLiteral("monospace"), 12));
+    clockColumns.setTextWidth(500);
+    const QString clock = QStringLiteral("[12:34] ");
+    appendIrcMessage(&clockColumns, QStringLiteral("<Al>\t") + QStringLiteral("wrapped message ").repeated(20), 1, palette, true, clock, 300);
+    appendIrcMessage(&clockColumns, QStringLiteral("<LongNickname>\tother message"), 1, palette, true, clock, 300);
+    appendIrcMessage(&clockColumns, QStringLiteral("*\tAl waves"), 1, palette, true, clock, 300);
+    appendIrcMessage(&clockColumns, QStringLiteral("plain relay status"), 1, palette, true, clock, 300);
+    clockColumns.size();
+    const auto statusLayout = clockColumns.lastBlock().layout();
+    const qreal clockX = statusLayout->position().x() + statusLayout->lineAt(0).cursorToX(0);
+    for (auto block = clockColumns.begin(); block != clockColumns.lastBlock(); block = block.next()) {
+        const auto layout = block.layout();
+        const qreal startX = layout->position().x() + layout->lineAt(0).cursorToX(0);
+        ok &= verify(std::abs(startX - clockX) < 1, "timestamps start at the same left edge across nicknames, actions and plain status lines");
+        const int body = block.text().indexOf(QLatin1Char('\t')) + 1;
+        const qreal bodyStart = layout->position().x() + layout->lineAt(0).cursorToX(body);
+        const qreal nicknameEnd = layout->position().x() + layout->lineAt(0).cursorToX(body - 1);
+        ok &= verify(std::abs(bodyStart - nicknameEnd - 8) < 1,
+                     "timestamped nicknames have a small fixed gap before text regardless of nickname length");
+        if (layout->lineCount() > 1)
+            ok &= verify(std::abs(bodyStart - layout->position().x() - layout->lineAt(1).cursorToX(layout->lineAt(1).textStart())) < 1,
+                         "timestamped wrapped text aligns with its message body");
+    }
     QTextDocument copying;
     appendIrcMessage(&copying, QString(QChar(2)) + QStringLiteral("bold") + QChar(2) + QStringLiteral(" https://example.test"), 1, palette, true, QStringLiteral("[clock] "));
     appendIrcMessage(&copying, QString(QChar(3)) + QStringLiteral("04,02red") + QChar(15) + QStringLiteral(" plain"), 1, palette, true, QStringLiteral("[clock] "));

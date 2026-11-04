@@ -11,6 +11,8 @@ void qt_relay_users(void *session, const char *const *nicks, const char *const *
 int qt_relay_ignored(void *session, const char *source);
 void qt_relay_topic(void *session, const char *topic);
 void qt_relay_message(void *session, const char *formatted, time_t timestamp, int replay, int unread, int highlight);
+void qt_relay_chat_message(void *session, const char *kind, const char *nick, const char *text,
+                           time_t timestamp, int replay, int unread, int highlight);
 void qt_relay_typing(void *session, const char *const *nicks, int count);
 void *qt_relay_session_server(void *session);
 /* Qt backend callbacks; never run on the SSH worker. */
