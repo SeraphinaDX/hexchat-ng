@@ -107,11 +107,13 @@ def run(binary, key_tool, scenario):
                         send({"type": "history", "messages": [history] if iteration == 0 else [history, live, own]})
                         snapshot = {"servers": [{"name": "testnet", "nick": "tester", "connected": True,
                                                  "targets": [{"target": "#relay", "joined": True, "topic": "relay topic <b>literal</b>",
-                                                              "users": [{"nick": "tester", "prefix": ""}, {"nick": "peer", "prefix": "@"}], "typing_users": ["peer"]}]}]}
+                                                              "users": [{"nick": "tester", "prefix": ""}, {"nick": "peer", "prefix": "@"}]}]}]}
                         if iteration:
                             snapshot["servers"][0]["targets"].append({"target": "#extra", "joined": True, "users": []})
                         send({"type": "snapshot", "snapshot": snapshot})
                         send({"type": "ready"})
+                        send({"type": "event", "event": {"Server": "testnet", "Command": "TAGMSG", "Source": "peer",
+                                                          "Params": ["#relay"], "Tags": {"+typing": "active"}}})
                         send({"type": "message", "message": live if iteration == 0 else message("after", "after reconnect")})
                         for raw in stream:
                             frame = json.loads(raw)

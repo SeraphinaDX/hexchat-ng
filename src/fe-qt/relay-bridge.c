@@ -113,8 +113,7 @@ void qt_relay_message(void *ptr, const char *formatted, time_t stamp, int replay
     if (replay) { fe_print_text(sess, (char *)formatted, stamp, TRUE); return; }
     PrintTextTimeStampNoActivity(sess, (char *)formatted, stamp);
     if (unread) {
-        sess->tab_state |= TAB_STATE_NEW_MSG;
-        if (highlight) sess->tab_state |= TAB_STATE_NEW_HILIGHT;
+        /* fe_set_tab_color owns the state and preserves highlight priority. */
         fe_set_tab_color(sess, sess == current_tab ? FE_COLOR_NONE : highlight ? FE_COLOR_NEW_HILIGHT : FE_COLOR_NEW_MSG | FE_COLOR_FLAG_NOOVERRIDE);
     }
 }

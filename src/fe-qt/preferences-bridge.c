@@ -44,6 +44,11 @@ int qt_core_preferences_apply(const struct QtPreferenceChange *changes, int coun
         if (strcmp(current.value, changes[i].expected)) return fail(error, capacity, "Settings changed while this dialog was open. Cancel and reopen Preferences.");
         const struct Setting *s = &settings[changes[i].index]; const char *value = changes[i].value;
         if (!s->type) {
+            if (!strcmp(s->key, "irc_nick1") || !strcmp(s->key, "irc_nick2") || !strcmp(s->key, "irc_nick3") ||
+                !strcmp(s->key, "irc_user_name")) {
+                if (!*value || strpbrk(value, " \t\v\f\r\n"))
+                    return fail(error, capacity, "Identity nicknames and username must be nonempty and contain no spaces.");
+            }
             if (!strcmp(s->key, "input_command_char") && (strlen(value) != 1 || (unsigned char)value[0] < 33 || (unsigned char)value[0] > 126)) return fail(error, capacity, "The command prefix must be one printable ASCII character.");
             if (!strcmp(s->key, "completion_suffix") && g_utf8_validate(value, -1, NULL) && g_utf8_strlen(value, -1) > 1) return fail(error, capacity, "The completion suffix must be one character or empty.");
             if (strlen(value) >= s->size || !g_utf8_validate(value, -1, NULL) || strpbrk(value, "\r\n")) return fail(error, capacity, "A text setting is too long or contains invalid characters.");

@@ -16,6 +16,7 @@
 static QByteArray directory;
 extern "C" const char *qt_core_config_dir() { return directory.constData(); }
 extern "C" void qt_fe_message_alert(void *, const char *, int, int) {}
+extern "C" void qt_fe_typing(void *, const char *, const char *) {}
 #define CHECK(value) do { if (!(value)) { std::fprintf(stderr, "FAIL line %d: %s\n", __LINE__, #value); return 1; } } while (0)
 int main(int argc, char **argv) {
     QApplication app(argc, argv);

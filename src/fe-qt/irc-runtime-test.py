@@ -40,6 +40,7 @@ def run(binary, tls_mode="", recovery="", build=None, bundled_addons=False):
             f"net_throttle = 0\nnet_auto_reconnect = {int(recovery in {'drop', 'cancel'})}\n"
             f"net_auto_reconnectonfail = {int(recovery == 'refused')}\nirc_reconnect_rejoin = 1\n"
             "net_reconnect_delay = 1\nirc_join_delay = 0\nirc_logging = 0\ntext_replay = 0\n"
+            "irc_nick1 = global-nick\nirc_user_name = global-user\nirc_real_name = Global Real Name\n"
         )
         compiler = shlex.split(os.environ.get("CC", "cc"))
         includes = shlex.split(subprocess.check_output(["pkg-config", "--cflags", "glib-2.0"], text=True))
@@ -180,7 +181,10 @@ def run(binary, tls_mode="", recovery="", build=None, bundled_addons=False):
                                             send(f":local 903 {nickname} :SASL authentication successful")
                                 elif command == "NICK":
                                     nickname = words[1].lstrip(":")
+                                    assert nickname == ("runtime-nick" if tls else "global-nick"), ("identity nickname", line)
                                 elif command == "USER":
+                                    assert words[1] == ("runtime-user" if tls else "global-user"), ("identity username", line)
+                                    assert line.partition(" :")[2] == ("Runtime Test" if tls else "Global Real Name"), ("identity real name", line)
                                     user = True
                                 elif command == "PING":
                                     send("PONG " + " ".join(words[1:]))

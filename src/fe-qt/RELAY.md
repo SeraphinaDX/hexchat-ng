@@ -81,7 +81,8 @@ profile settings takes effect on the next connection.
 
 This backend implements AnsiChat relay protocol **2** over the compatibility SSH
 channel `copperline-relay@copperline`. It uses snapshots for network state, topics,
-nick lists and typing indicators, and message frames for live chat and history.
+nick lists and typing indicators, live typing events for immediate active/paused/done
+updates, and message frames for live chat and history.
 Mirrored raw events are not reparsed as new IRC messages, so they cannot produce
 duplicate chat or automatic CTCP replies.
 

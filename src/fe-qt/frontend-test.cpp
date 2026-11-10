@@ -221,7 +221,10 @@ int main(int argc, char **argv)
     qt_fe_select_session(channel);
     auto *typing = window->findChild<QLabel *>(QStringLiteral("typingStatus"));
     qt_fe_typing(channel, "Alice", "active");
-    verify(typing && typing->text() == QStringLiteral("Alice is typing…"), "incoming active typing is visible");
+    verify(typing && typing->text() == QStringLiteral("Alice is typing…") && typing->isVisible(), "incoming active typing is visible over startup status message");
+    window->statusBar()->showMessage(QStringLiteral("Temporary status message"), 5000);
+    QCoreApplication::processEvents();
+    verify(typing->isVisible(), "temporary status message does not hide typing indicator");
     qt_fe_typing(channel, "alice", "paused");
     verify(typing->text() == QStringLiteral("alice has paused typing"), "typing nick matching follows IRC case mapping");
     qt_fe_select_session(query);
@@ -1022,7 +1025,9 @@ int main(int argc, char **argv)
     auto *detached = static_cast<ConversationWindow *>(window->findChild<QMainWindow *>(QStringLiteral("detachedConversation")));
     verify(detached && !detached->chat->palette().brush(QPalette::Base).texture().isNull(), "detached transcript inherits configured background");
     qt_fe_typing(channel, "Alice", "active");
-    verify(detached && detached->typingStatus->text() == QStringLiteral("Alice is typing…"), "detached conversation displays its typing state");
+    if (detached) detached->statusBar()->showMessage(QStringLiteral("Temporary detached status"), 5000);
+    QCoreApplication::processEvents();
+    verify(detached && detached->typingStatus->text() == QStringLiteral("Alice is typing…") && detached->typingStatus->isVisible(), "detached conversation displays typing over status messages");
     qt_fe_typing(channel, "Alice", "done");
     verify(detached && detached->typingStatus->text().isEmpty(), "detached conversation clears typing state");
     verify(detached && detached->isVisible() && detached->input->text() == QStringLiteral("detached draft"), "detach preserves draft in independent window");

@@ -235,7 +235,27 @@ void RelayBackend::frame(Connection *c, const QJsonObject &f) {
         const auto pending = c->pending.take(id);
         if (!f.value("error").toString().isEmpty()) setStatus(c, "Relay request failed (" + pending.second + "): " + f.value("error").toString());
     } else if (type == "error") { setStatus(c, "Relay error: " + f.value("error").toString()); c->worker->requestInterruption(); }
-    // 'event' frames mirror message/snapshot content. Never feed them into the
+    else if (type == "event" && c->ready) {
+        const auto event = f.value("event").toObject();
+        // Typing changes arrive as events, without an immediate snapshot.
+        if (event.value("Command").toString() != "TAGMSG") return;
+        const auto name = event.value("Server").toString();
+        if (c->hiddenServers.contains(name) || !c->remotes.contains(name)) return;
+        auto &remote = c->remotes[name];
+        const auto nick = event.value("Source").toString();
+        if (nick.isEmpty() || targetKey(nick) == targetKey(remote.nick)) return;
+        const auto params = event.value("Params").toArray();
+        if (params.isEmpty()) return;
+        auto target = params.at(0).toString();
+        if (targetKey(target) == targetKey(remote.nick)) target = nick;
+        void *session = remote.targets.value(targetKey(target), nullptr);
+        if (!session || qt_relay_ignored(session, (nick + "!*@*").toUtf8().constData())) return;
+        const auto tags = event.value("Tags").toObject();
+        const auto state = tags.value("+typing").toString(tags.value("typing").toString());
+        if (state == "active" || state == "paused" || state == "done")
+            qt_fe_typing(session, nick.toUtf8().constData(), state.toUtf8().constData());
+    }
+    // Other event frames mirror message/snapshot content. Never feed them into the
     // IRC parser: that would duplicate messages and automatic CTCP replies.
 }
 void RelayBackend::snapshot(Connection *c, const QJsonObject &state) {

@@ -97,6 +97,12 @@ public:
         identityForm->addRow(QStringLiteral("Backup nickname:"), nick2_);
         identityForm->addRow(QStringLiteral("Username:"), user_);
         identityForm->addRow(QStringLiteral("Real name:"), real_);
+        auto *identityHelp = new QLabel(
+            QStringLiteral("Edit global identity in Settings → Preferences → Identity. "
+                           "Network overrides apply when you reconnect. "
+                           "AnsiChat relay identity is managed by the relay server."), identityPage);
+        identityHelp->setWordWrap(true);
+        identityForm->addRow(identityHelp);
         identityForm->addRow(QStringLiteral("Authentication method:"), auth_);
         identityForm->addRow(QStringLiteral("Password:"), password_);
         auto *warning = new QLabel(

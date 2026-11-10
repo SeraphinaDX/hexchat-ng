@@ -21,6 +21,17 @@ static struct QtPreferenceChange change(const char *key, const char *value) {
 int main(void) {
     char error[512]; session context; sess_list = g_slist_append(NULL, &context);
     CHECK(qt_core_preference_count() >= 50);
+    struct QtPreferenceChange identity[] = {change("irc_nick1", "Primary"), change("irc_nick2", "Backup"),
+        change("irc_nick3", "Backup2"), change("irc_user_name", "identity-user"), change("irc_real_name", "Identity Real Name")};
+    CHECK(qt_core_preferences_apply(identity, 5, error, sizeof(error)));
+    CHECK(!strcmp(prefs.hex_irc_nick1, "Primary") && !strcmp(prefs.hex_irc_nick2, "Backup") &&
+          !strcmp(prefs.hex_irc_nick3, "Backup2") && !strcmp(prefs.hex_irc_user_name, "identity-user") &&
+          !strcmp(prefs.hex_irc_real_name, "Identity Real Name"));
+    identity[0] = change("irc_nick1", "");
+    CHECK(!qt_core_preferences_apply(identity, 1, error, sizeof(error)));
+    identity[0] = change("irc_user_name", "two words");
+    CHECK(!qt_core_preferences_apply(identity, 1, error, sizeof(error)));
+    saved = 0;
     struct QtPreferenceChange edits[2] = {change("irc_quit_reason", "See you later"), change("irc_logging", "1")};
     CHECK(qt_core_preferences_apply(edits, 2, error, sizeof(error)));
     CHECK(!strcmp(prefs.hex_irc_quit_reason, "See you later") && prefs.hex_irc_logging && saved == 1 && logging == 1);

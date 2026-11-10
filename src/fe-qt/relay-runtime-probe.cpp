@@ -11,6 +11,9 @@
 #include <QDialog>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
+#include <QLabel>
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
@@ -31,6 +34,29 @@ static QString contents(const QString &needle) {
 static int tick(void *) {
     if (++ticks > 800) { report("FAIL timeout"); return 0; }
     const auto scenario = QByteArray(std::getenv("QT_RELAY_SCENARIO"));
+    if (scenario == "direct-typing") {
+        if (!stage) {
+            char command[128];
+            std::snprintf(command, sizeof(command), "server -insecure 127.0.0.1 %s", std::getenv("QT_RELAY_DIRECT_PORT"));
+            qt_core_submit_command(ph->zoitechat_get_context(ph), command);
+            stage = 1;
+        }
+        auto *channel = ph->zoitechat_find_context(ph, nullptr, "#typing");
+        if (!channel) return 1;
+        qt_fe_select_session(channel);
+        QString text;
+        for (auto *widget : QApplication::allWidgets())
+            if (auto *label = qobject_cast<QLabel *>(widget))
+                if (label->objectName() == "typingStatus" && label->isVisible()) text = label->text();
+        if (stage == 1 && text == QStringLiteral("peer is typing…")) {
+            qt_core_submit_literal(channel, "saw active"); stage = 2;
+        } else if (stage == 2 && text == "peer has paused typing") {
+            qt_core_submit_literal(channel, "saw paused"); stage = 3;
+        } else if (stage == 3 && text.isEmpty()) {
+            report("PASS direct IRC active, paused and done typing indicators"); return 0;
+        }
+        return 1;
+    }
     if (scenario == "format") {
         auto *server = qt_relay_create_server("Relay colours", "me");
         auto *channel = qt_relay_target(server, "#colours", 1);
@@ -79,7 +105,20 @@ static int tick(void *) {
                 }
             }
         }
-        report("PASS relay colours match direct IRC for live messages and history"); return 0;
+        qt_fe_select_session(query);
+        QTreeWidgetItem *row = nullptr;
+        for (auto *widget : QApplication::allWidgets()) if (auto *tree = qobject_cast<QTreeWidget *>(widget))
+            for (QTreeWidgetItemIterator it(tree); *it; ++it)
+                if ((*it)->text(0) == "#colours") row = *it;
+        if (!row) { report("FAIL missing relay channel row"); return 0; }
+        qt_relay_chat_message(channel, "message", "peer", "me: mention", 123, 0, 1, 1);
+        const auto highlight = row->foreground(0);
+        if (!row->font(0).bold()) { report("FAIL mention has no activity"); return 0; }
+        qt_relay_chat_message(channel, "message", "peer", "ordinary message", 124, 0, 1, 0);
+        if (row->foreground(0) != highlight || !row->font(0).bold()) {
+            report("FAIL ordinary relay message clears highlight"); return 0;
+        }
+        report("PASS relay formatting and persistent mention activity"); return 0;
     }
     if (scenario == "encrypted" && ticks == 1) {
         QWidget *owner = nullptr;
@@ -125,6 +164,13 @@ static int tick(void *) {
         if (!peer) { report("FAIL snapshot nick list"); return 0; }
         conversation = channel; qt_fe_select_session(channel);
         if (!contents("retained history").contains("live from relay")) return 1;
+        if (scenario != "actual") {
+            bool typing = false;
+            for (auto *widget : QApplication::allWidgets())
+                if (auto *label = qobject_cast<QLabel *>(widget))
+                    if (label->objectName() == "typingStatus" && label->isVisible() && label->text().contains("peer is typing")) typing = true;
+            if (!typing) return 1;
+        }
         qt_core_submit_literal(channel, "message through relay  ");
         qt_core_submit_command(channel, "me waves");
         qt_core_submit_command(channel, "join #extra");

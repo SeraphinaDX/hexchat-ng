@@ -255,6 +255,10 @@ if get_option('plugin') and host_machine.system() == 'linux' and not meson.is_cr
     args: [meson.current_source_dir() / 'irc-runtime-test.py', zoitechat_qt],
     suite: 'runtime', timeout: 150, is_parallel: false,
   )
+  test('qt-typing-runtime', find_program('python3'),
+    args: [meson.current_source_dir() / 'typing-runtime-test.py', zoitechat_qt],
+    suite: 'runtime', timeout: 30, is_parallel: false,
+  )
   test('qt-scripts-runtime', find_program('python3'),
     args: [meson.current_source_dir() / 'scripts-runtime-test.py', zoitechat_qt],
     suite: 'runtime', timeout: 30, is_parallel: false,

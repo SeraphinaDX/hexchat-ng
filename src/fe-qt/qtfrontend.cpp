@@ -511,7 +511,7 @@ public:
         statusBar()->showMessage(QStringLiteral(
             "Welcome to hexchat-ng — use hexchat-ng → Network List, then Server → Join a Channel"));
         typingStatus_ = new QLabel(this); typingStatus_->setObjectName(QStringLiteral("typingStatus"));
-        typingStatus_->setTextFormat(Qt::PlainText); statusBar()->addWidget(typingStatus_, 1);
+        typingStatus_->setTextFormat(Qt::PlainText); statusBar()->addPermanentWidget(typingStatus_, 1);
         connect(input_, &QLineEdit::textEdited, this, [this](const QString &text) { qt_core_typing_update(active_, text.toUtf8().constData()); });
         connection_ = new QLabel(this);
         connection_->setObjectName(QStringLiteral("connectionStatus"));
@@ -938,7 +938,7 @@ public:
         layout->addWidget(split, 1);
         view->dialogButtons = new QScrollArea(center); view->dialogButtons->setWidgetResizable(true); view->dialogButtons->setMaximumHeight(90); layout->addWidget(view->dialogButtons);
         view->typingStatus = new QLabel(view); view->typingStatus->setObjectName(QStringLiteral("typingStatus"));
-        view->typingStatus->setTextFormat(Qt::PlainText); view->statusBar()->addWidget(view->typingStatus, 1);
+        view->typingStatus->setTextFormat(Qt::PlainText); view->statusBar()->addPermanentWidget(view->typingStatus, 1);
         view->input = new ChatInput(center); view->input->setDefaultShortcutsEnabled(false); view->input->setObjectName(QStringLiteral("detachedInput"));
         connect(view->input, &QLineEdit::textEdited, view, [this, target](const QString &text) { if (alive(target)) qt_core_typing_update(target.key, text.toUtf8().constData()); });
         view->input->setConversation(state.history.get(), state.users->users.keys());
