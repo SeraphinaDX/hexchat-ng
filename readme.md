@@ -78,6 +78,12 @@ meson compile -C build-qt
 ./build-qt/src/fe-qt/hexchat-ng --no-auto
 ```
 
+## Install
+
+```sh
+make install
+```
+
 Install Meson, Ninja, a C17/C++17 compiler, Qt 6.2 or newer (including Network), Pango/Cairo,
 GLib/GIO, gettext, libarchive, OpenSSL 1.1.1+ and libssh2 1.10+ development packages. Enchant 2 adds
 spell checking. See [the build guide](src/fe-qt/README.md) for plugin options,
