@@ -54,12 +54,9 @@ typedef struct
 static char *
 get_client (void)
 {
-		const char *ver = zoitechat_get_info(ph, "version");
-	char *out;
+	const char *ver = zoitechat_get_info(ph, "version");
 
-		out = g_strdup_printf ("ZoiteChat %s", ver);
-
-	return out;
+	return g_strdup_printf ("hexchat-ng %s", ver);
 }
 
 static hwinfo hwinfos[] = {

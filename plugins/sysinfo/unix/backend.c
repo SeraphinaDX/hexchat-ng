@@ -254,14 +254,29 @@ static const char *sysinfo_detect_display_backend(void)
 
 char *sysinfo_backend_get_ui(void)
 {
+	const char *desktop = g_getenv("XDG_CURRENT_DESKTOP");
 	const char *toolkit = sysinfo_detect_toolkit();
 	const char *display = sysinfo_detect_display_backend();
+	GString *ui = g_string_new(NULL);
 
-	if (toolkit && display)
-		return g_strdup_printf("%s / %s", toolkit, display);
+	if (!desktop || !*desktop)
+	{
+		if (g_strcmp0(g_getenv("KDE_FULL_SESSION"), "true") == 0)
+			desktop = "KDE";
+		else
+			desktop = g_getenv("DESKTOP_SESSION");
+	}
+
+	if (desktop && *desktop)
+		g_string_append(ui, desktop);
 	if (toolkit)
-		return g_strdup(toolkit);
+		g_string_append_printf(ui, "%s%s", ui->len ? " / " : "", toolkit);
 	if (display)
-		return g_strdup(display);
-	return NULL;
+		g_string_append_printf(ui, "%s%s", ui->len ? " / " : "", display);
+	if (!ui->len)
+	{
+		g_string_free(ui, TRUE);
+		return NULL;
+	}
+	return g_string_free(ui, FALSE);
 }
