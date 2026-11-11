@@ -93,6 +93,37 @@ When upgrading from a GTK-enabled checkout, use a fresh build directory such as
 `-Dgtk-frontend`, `-Dappindicator` and `-Dmac-integration` from saved build
 commands; those options no longer exist.
 
+## Build an AppImage
+
+On Linux, install the normal Qt build dependencies listed above, plus curl,
+Python 3, Qt 6 qmake, patchelf, desktop-file-utils and file. From the repository
+root, run:
+
+```sh
+./packaging/appimage/build.sh
+```
+
+The script builds the Qt application, bundles Qt and writes
+`dist/hexchat-ng-VERSION-ARCH.AppImage` and its `.sha256` checksum. `VERSION`
+comes from the repository's `VERSION` file; `ARCH` is the build machine's
+architecture (`x86_64` or `aarch64`). To launch the resulting file:
+
+```sh
+chmod +x dist/hexchat-ng-*.AppImage
+./dist/hexchat-ng-*.AppImage
+```
+
+Use the specific filename if `dist/` contains multiple AppImages. Packaging
+tools are downloaded on first use and cached in `build-appimage/tools/`.
+Building does not require FUSE. Build on the oldest Linux distribution you
+intend to support, since the build host determines the minimum glibc version.
+
+Python, Perl, Lua, FiSHLiM and sysinfo plugins are disabled by default. Extra
+Meson setup options can be passed to the script; scripting plugins also need
+their runtimes bundled separately. Run `./packaging/appimage/build.sh --help`
+for build directory, output directory and Qt overrides. See the
+[AppImage packaging guide](packaging/appimage/README.md) for more details.
+
 ## Relay quick start
 
 You need a running AnsiChat relay and access to its configured authorized-keys
