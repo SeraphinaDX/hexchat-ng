@@ -1299,6 +1299,32 @@ int main(int argc, char **argv)
         for (int tick = 0; tick < 5; ++tick) QCoreApplication::processEvents();
         verify(chat->verticalScrollBar()->value() == historyPosition,
                "large relay backlog preserves intentional history position after layout settles");
+        // Match the configured limit before testing an unrelated settings update.
+        chat->document()->setMaximumBlockCount(100);
+        chat->setLineWrapMode(QTextEdit::NoWrap);
+        QCoreApplication::processEvents();
+        const int settingsPosition = chat->verticalScrollBar()->maximum() / 2;
+        static_cast<ChatTranscript *>(chat)->restoreScrollPosition(settingsPosition);
+        qt_fe_gui_control(&busyChannel, 8, 0);
+        for (int tick = 0; tick < 5; ++tick) QCoreApplication::processEvents();
+        verify(chat->verticalScrollBar()->value() == settingsPosition,
+               "applying settings preserves the transcript history position");
+        chat->verticalScrollBar()->setValue(chat->verticalScrollBar()->maximum());
+        qt_fe_gui_control(&busyChannel, 8, 0);
+        for (int tick = 0; tick < 5; ++tick) QCoreApplication::processEvents();
+        verify(chat->verticalScrollBar()->value() == chat->verticalScrollBar()->maximum(),
+               "applying settings keeps a transcript at the latest message");
+        {
+            QWidget otherApplication;
+            otherApplication.show(); otherApplication.activateWindow();
+            QCoreApplication::processEvents();
+            verify(QApplication::activeWindow() == &otherApplication, "focus regression starts with another window active");
+            qt_fe_gui_control(&busyChannel, 8, 0);
+            qt_fe_message_alert(&busyChannel, "mention after changing settings", 1, 0);
+            for (int tick = 0; tick < 5; ++tick) QCoreApplication::processEvents();
+            verify(QApplication::activeWindow() == &otherApplication,
+                   "settings refresh followed by a mention does not activate the chat window");
+        }
         qt_fe_remove_session(&busyChannel); engine.remove(&busyChannel);
         qt_fe_select_session(channel);
     }

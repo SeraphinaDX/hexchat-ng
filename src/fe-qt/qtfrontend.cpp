@@ -2671,6 +2671,11 @@ private:
     }
     void applyDisplay()
     {
+        // Font, wrapping and block-format changes can reset QTextEdit's range.
+        // Capture every visible transcript before changing any layout settings.
+        const int chatPosition = chat_->savedScrollPosition();
+        QHash<ChatTranscript *, int> detachedPositions;
+        for (auto *view : detached_) detachedPositions.insert(view->chat, view->chat->savedScrollPosition());
         bool showUsermenu = false;
         QHash<QByteArray, bool> nativeVisibility;
         for (int i = 0; i < qt_core_preference_count(); ++i) {
@@ -2730,6 +2735,9 @@ private:
         { const QSignalBlocker tabsBlock(layoutTabs_), treeBlock(layoutTree_); layoutTabs_->setChecked(switcherLayout_ != 2); layoutTree_->setChecked(switcherLayout_ == 2); }
         applySwitcherAppearance(); placeConversationPanes(); refreshMeterMenus(); configureDesktop(); rebuildSwitcher(switcherItems()); refreshSwitcherLabels(); updateUserCount(); updateStatus();
         updateMarker(); updateTitle();
+        chat_->restoreScrollPosition(chatPosition);
+        for (auto it = detachedPositions.cbegin(); it != detachedPositions.cend(); ++it)
+            it.key()->restoreScrollPosition(it.value());
     }
     void zoomChat(int delta)
     {
