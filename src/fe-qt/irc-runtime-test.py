@@ -37,7 +37,7 @@ def run(binary, tls_mode="", recovery="", build=None, bundled_addons=False):
         system_addons.mkdir()
         (config / "zoitechat.conf").write_text(
             "gui_slist_skip = 1\ngui_tab_server = 1\nidentd_server = 0\n"
-            f"net_throttle = 0\nnet_auto_reconnect = {int(recovery in {'drop', 'cancel'})}\n"
+            f"net_throttle = 0\nnet_auto_reconnect = {int(recovery in {'drop', 'offline', 'cancel'})}\n"
             f"net_auto_reconnectonfail = {int(recovery == 'refused')}\nirc_reconnect_rejoin = 1\n"
             "net_reconnect_delay = 1\nirc_join_delay = 0\nirc_logging = 0\ntext_replay = 0\n"
             "irc_nick1 = global-nick\nirc_user_name = global-user\nirc_real_name = Global Real Name\n"
@@ -66,12 +66,14 @@ def run(binary, tls_mode="", recovery="", build=None, bundled_addons=False):
                 tls.load_verify_locations(cafile=str(certificate))
                 tls.verify_mode = ssl.CERT_REQUIRED
         with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             listener.bind(("127.0.0.1", 0))
             if recovery != "refused":
                 listener.listen(2)
             listener.settimeout(15)
 
             def peer():
+                nonlocal listener
                 try:
                     if recovery == "refused":
                         deadline = time.monotonic() + 10
@@ -214,7 +216,7 @@ def run(binary, tls_mode="", recovery="", build=None, bundled_addons=False):
                                     seen.add("topic")
                                     send(f":{nickname}!test@localhost TOPIC #port :{topic}")
                                 elif command == "PRIVMSG":
-                                    if recovery in {"drop", "cancel"}:
+                                    if recovery in {"drop", "offline", "cancel"}:
                                         assert iteration == 1 and line == "PRIVMSG #port :drop connection now", line
                                         seen.add("drop")
                                         connection.shutdown(socket.SHUT_RDWR)
@@ -244,13 +246,30 @@ def run(binary, tls_mode="", recovery="", build=None, bundled_addons=False):
                             assert not seen and not registered, "Invalid TLS registered"
                             continue
                         required = {"join", "pong", "quit"}
-                        if recovery in {"drop", "cancel"} and iteration == 1:
+                        if recovery in {"drop", "offline", "cancel"} and iteration == 1:
                             required = {"join", "pong", "drop"}
                         if tls:
                             required |= {"sasl-denied", "sasl-aborted"} if tls_mode == "sasl-denied" else {"sasl-aborted"} if bad_scram else {"sasl"}
                         if iteration == 1 and not recovery:
                             required |= {"mode-denied", "mode", "topic", "message", "part"}
                         assert required <= seen, f"connection {iteration} missing {required - seen}"
+                        if recovery == "offline" and iteration == 1:
+                            address = listener.getsockname()
+                            listener.close()
+                            listener = socket.socket()
+                            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                            listener.bind(address)
+                            listener.settimeout(10)
+                            # Hold the port without listening until a recovery
+                            # attempt has failed, as Wi-Fi can do after resume.
+                            deadline = time.monotonic() + 5
+                            while time.monotonic() < deadline:
+                                if report.exists() and "connection_failed=1" in report.read_text():
+                                    break
+                                time.sleep(0.02)
+                            else:
+                                raise AssertionError("No failed recovery attempt observed")
+                            listener.listen(2)
                     if recovery == "cancel":
                         listener.settimeout(2)
                         try:
@@ -264,6 +283,9 @@ def run(binary, tls_mode="", recovery="", build=None, bundled_addons=False):
                 except Exception as error:
                     if not stopping.is_set():
                         failures.append(repr(error))
+                finally:
+                    if recovery == "offline":
+                        listener.close()
 
             report = folder / "report.txt"
             worker = threading.Thread(target=peer, daemon=True)
@@ -321,7 +343,7 @@ if __name__ == "__main__":
     binary = args.binary.resolve()
     build = args.build.resolve() if args.build else binary.parents[2]
     run(binary, build=build, bundled_addons=args.bundled_addons)
-    for recovery in ("drop", "refused", "cancel"):
+    for recovery in ("drop", "offline", "refused", "cancel"):
         run(binary, recovery=recovery, build=build, bundled_addons=args.bundled_addons)
     config = (build / "config.h").read_text()
     if any(line.startswith("#define USE_OPENSSL") for line in config.splitlines()):

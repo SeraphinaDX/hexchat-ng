@@ -140,7 +140,7 @@ static int tick(void *) {
             }
         }
     }
-    if (scenario != "normal" && scenario != "trust" && scenario != "actual" && scenario != "encrypted") {
+    if (scenario != "normal" && scenario != "offline" && scenario != "trust" && scenario != "actual" && scenario != "encrypted") {
         auto *root = ph->zoitechat_find_context(ph, "Relay · Local", nullptr);
         if (root) qt_fe_select_session(root);
         const auto text = contents(scenario == "mismatch" ? "host key mismatch" : scenario == "reject" ? "not trusted" : "unsupported protocol");

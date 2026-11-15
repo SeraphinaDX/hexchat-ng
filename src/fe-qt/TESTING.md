@@ -1062,10 +1062,14 @@ certificate loaded from the native network-specific `certs/<network>.pem` path;
 the peer checks the empty authentication identity, no password disclosure and
 certificate presentation again after reconnect. Non-TLS builds explicitly skip TLS.
 
-Recovery scenarios drop an established connection, refuse the initial connection
-until failure is observed, and cancel pending reconnect. Checks cover waiting
+Recovery scenarios drop an established connection, refuse a recovery attempt
+before restoring the listener (with initial-failure retries disabled), refuse the
+initial connection until failure is observed, and cancel pending reconnect. Checks cover waiting
 state, cleared membership/disabled moderation, automatic rejoin into the original
 conversation with its draft retained, and no new socket after cancellation.
+The SSH relay runtime suite also drops a ready relay, refuses connections for
+four seconds, then verifies recovery and retained history without duplicate messages.
+Actual suspend/resume with a desktop network manager remains a manual check.
 SCRAM SHA-1/SHA-256/SHA-512 scenarios independently verify client proofs using
 Python's hashlib/hmac, complete server verification, and repeat after reconnect.
 Invalid server signatures and malformed verifier prefixes must abort SASL before

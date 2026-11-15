@@ -131,6 +131,9 @@ server_reconnect_password_cb (int cancel, char *text, void *userdata)
 {
 	reconnect_password_prompt *prompt = userdata;
 
+	if (cancel && is_server (prompt->serv))
+		prompt->serv->reconnect_retry = FALSE;
+
 	if (!cancel && is_server (prompt->serv) && !prompt->serv->connected && !prompt->serv->connecting && prompt->serv->server_session)
 	{
 		prompt->serv->password[0] = 0;
@@ -469,6 +472,7 @@ server_connected (server * serv)
 	serv->ping_recv = time (0);
 	serv->lag_sent = 0;
 	serv->connected = TRUE;
+	serv->reconnect_retry = FALSE;
 	set_nonblocking (serv->sok);
 	serv->iotag = fe_input_add (serv->sok, FIA_READ|FIA_EX, server_read, serv);
 	if (!serv->no_login)
@@ -646,6 +650,8 @@ ssl_do_connect (server * serv)
 
 			if (prefs.hex_net_auto_reconnectonfail)
 				auto_reconnect (serv, FALSE, -1);
+			else
+				serv->reconnect_retry = FALSE;
 
 			return (0);				  /* remove it (0) */
 		}
@@ -739,6 +745,7 @@ conn_fail:
 							 NULL, 0);
 
 			server_cleanup (serv);
+			serv->reconnect_retry = FALSE;
 
 			return (0);
 		}
@@ -770,7 +777,8 @@ conn_fail:
 							 NULL, NULL, 0);
 				server_cleanup (serv); /* ->connecting = FALSE */
 
-				if (prefs.hex_net_auto_reconnectonfail)
+				if (prefs.hex_net_auto_reconnectonfail ||
+				    (serv->reconnect_retry && prefs.hex_net_auto_reconnect))
 					auto_reconnect (serv, FALSE, -1);
 
 				return (0);				  /* remove it (0) */
@@ -790,6 +798,9 @@ timeout_auto_reconnect (server *serv)
 		serv->recondelay_tag = 0;
 		if (!serv->connected && !serv->connecting && serv->server_session)
 		{
+			/* A failed recovery attempt must keep retrying even when retries
+			 * for initial connections are disabled (e.g. Wi-Fi after resume). */
+			serv->reconnect_retry = TRUE;
 			if (!server_prompt_reconnect_password (serv))
 				server_connect (serv, serv->hostname, serv->port, FALSE);
 		}
@@ -921,7 +932,8 @@ server_read_child (GIOChannel *source, GIOCondition condition, server *serv)
 			closesocket (serv->proxy_sok6);
 		EMIT_SIGNAL (XP_TE_UKNHOST, sess, NULL, NULL, NULL, NULL, 0);
 		if (!servlist_cycle (serv))
-			if (prefs.hex_net_auto_reconnectonfail)
+			if (prefs.hex_net_auto_reconnectonfail ||
+			    (serv->reconnect_retry && prefs.hex_net_auto_reconnect))
 				auto_reconnect (serv, FALSE, -1);
 		break;
 	case '2':						  /* connection failed */
@@ -937,7 +949,8 @@ server_read_child (GIOChannel *source, GIOCondition condition, server *serv)
 		EMIT_SIGNAL (XP_TE_CONNFAIL, sess, errorstring (atoi (tbuf)), NULL,
 						 NULL, NULL, 0);
 		if (!servlist_cycle (serv))
-			if (prefs.hex_net_auto_reconnectonfail)
+			if (prefs.hex_net_auto_reconnectonfail ||
+			    (serv->reconnect_retry && prefs.hex_net_auto_reconnect))
 				auto_reconnect (serv, FALSE, -1);
 		break;
 	case '3':						  /* resolver finished */
@@ -1080,6 +1093,7 @@ server_disconnect (session * sess, int sendquit, int err)
 	GSList *list;
 	char tbuf[64];
 	gboolean shutup = FALSE;
+	serv->reconnect_retry = FALSE;
 
 	/* send our QUIT reason */
 	if (sendquit && serv->connected)

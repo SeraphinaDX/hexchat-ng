@@ -47,6 +47,7 @@ def run(binary, key_tool, scenario):
         authenticated, channels, actions, failures = [], [], [], []
         accepted = threading.Event()
         listener = socket.socket()
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         listener.bind(("127.0.0.1", 0))
         listener.listen()
         listener.settimeout(15)
@@ -76,8 +77,9 @@ def run(binary, key_tool, scenario):
         seen = []
 
         def peer():
+            nonlocal listener
             try:
-                for attachment in range(3 if scenario == "trust" else 2 if scenario in {"normal", "encrypted"} else 1):
+                for attachment in range(3 if scenario == "trust" else 2 if scenario in {"normal", "offline", "encrypted"} else 1):
                     iteration = attachment - (1 if scenario == "trust" else 0)
                     connection, _ = listener.accept()
                     with connection:
@@ -139,6 +141,17 @@ def run(binary, key_tool, scenario):
                                 transport.close()
                                 break
                         transport.close()
+                    if scenario == "offline" and iteration == 0:
+                        address = listener.getsockname()
+                        listener.close()
+                        listener = socket.socket()
+                        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        listener.bind(address)
+                        listener.settimeout(15)
+                        # Refuse the first recovery attempts before bringing
+                        # the relay back, as after a suspended network resumes.
+                        time.sleep(4)
+                        listener.listen()
                 accepted.set()
             except (EOFError, socket.error) as error:
                 if scenario in {"mismatch", "version", "reject"}:
@@ -173,7 +186,7 @@ def run(binary, key_tool, scenario):
         status = report.read_text() if report.exists() else "no probe report"
         assert not failures and status.startswith("PASS"), (scenario, failures, status, actions, output.decode())
         assert accepted.is_set(), ("relay did not detach", actions)
-        if scenario in {"normal", "trust", "encrypted"}:
+        if scenario in {"normal", "offline", "trust", "encrypted"}:
             assert channels == ["copperline-relay@copperline"] * 2, channels
             assert {"message", "action", "join", "typing"} <= set(actions), actions
             if scenario == "trust":
@@ -185,5 +198,5 @@ def run(binary, key_tool, scenario):
 
 
 if __name__ == "__main__":
-    for scenario in ("normal", "encrypted", "trust", "reject", "mismatch", "version"):
+    for scenario in ("normal", "offline", "encrypted", "trust", "reject", "mismatch", "version"):
         run(Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve(), scenario)

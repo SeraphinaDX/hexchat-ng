@@ -620,6 +620,7 @@ typedef struct server
 	unsigned int use_listargs:1;		/* undernet and dalnet need /list >0,<10000 */
 	unsigned int is_away:1;
 	unsigned int reconnect_away:1;	/* whether to reconnect in is_away state */
+	unsigned int reconnect_retry:1; /* recovering a connection, not an initial attempt */
 	unsigned int dont_use_proxy:1;	/* to proxy or not to proxy */
 	unsigned int supports_watch:1;	/* supports the WATCH command */
 	unsigned int supports_monitor:1;	/* supports the MONITOR command */
