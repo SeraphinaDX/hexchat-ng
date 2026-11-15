@@ -30,6 +30,13 @@ interface; ``-Dqt-frontend=false`` disables the graphical application.
 For offline builds, pass
 ``-Dpublic-suffix-list=/path/to/public_suffix_list.dat`` during setup.
 
+Install
+-------
+
+After building, run ``make install``. The Makefile defaults to ``build-qt`` and
+checks for changed sources once before installing. To install from a different
+build directory, use ``make install BUILD_DIR=your-build-dir``.
+
 Existing builds
 ---------------
 

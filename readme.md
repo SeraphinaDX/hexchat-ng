@@ -83,6 +83,10 @@ meson compile -C build-qt
 make install
 ```
 
+The Makefile uses `build-qt`, matching the build commands above. Installation
+checks for changed sources once, then installs the resulting build. If you use
+a different directory, pass it explicitly: `make install BUILD_DIR=your-build-dir`.
+
 Install Meson, Ninja, a C17/C++17 compiler, Qt 6.2 or newer (including Network), Pango/Cairo,
 GLib/GIO, gettext, libarchive, OpenSSL 1.1.1+ and libssh2 1.10+ development packages. Enchant 2 adds
 spell checking. See [the build guide](src/fe-qt/README.md) for plugin options,

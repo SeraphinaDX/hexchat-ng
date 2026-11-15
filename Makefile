@@ -1,5 +1,5 @@
 PREFIX ?= /usr/local
-BUILD_DIR ?= build
+BUILD_DIR ?= build-qt
 MESON ?= meson
 NINJA ?= ninja
 C_STD ?= c17
@@ -28,7 +28,7 @@ reconfigure:
 	@env NINJA=$(NINJA) $(MESON) setup --reconfigure $(BUILD_DIR) --prefix=$(PREFIX) $(MESON_SETUP_ARGS)
 
 install: build
-	@env NINJA=$(NINJA) $(MESON) install -C $(BUILD_DIR) $(MESON_INSTALL_ARGS)
+	@env NINJA=$(NINJA) $(MESON) install --no-rebuild -C $(BUILD_DIR) $(MESON_INSTALL_ARGS)
 
 uninstall: configure
 	@$(NINJA) -C $(BUILD_DIR) uninstall
