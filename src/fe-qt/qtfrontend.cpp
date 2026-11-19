@@ -203,6 +203,7 @@ protected:
 class ChatTranscript final : public QTextBrowser {
 public:
     explicit ChatTranscript(QWidget *parent = nullptr) : QTextBrowser(parent) {
+        setViewportMargins(0, 0, 0, 8);
         connect(verticalScrollBar(), &QScrollBar::rangeChanged, this, [this]() {
             if (pendingScrollRestore_) applyScrollPosition(pendingScrollPosition_);
         });
@@ -236,7 +237,7 @@ protected:
             if (!color.isValid()) continue;
             auto cursor = selection.cursor;
             cursor.movePosition(QTextCursor::EndOfBlock);
-            const int y = cursorRect(cursor).bottom();
+            const int y = cursorRect(cursor).bottom() + (cursor.block() == document()->lastBlock() ? 4 : 0);
             painter.setPen(QPen(color.value<QColor>(), 1));
             painter.drawLine(0, y, viewport()->width(), y);
         }
@@ -560,6 +561,7 @@ public:
         Conversation conversation;
         conversation.name = name;
         conversation.document = new QTextDocument(this);
+        conversation.document->setDocumentMargin(12);
         conversation.document->setDefaultFont(chat_->font());
         conversation.document->setMaximumBlockCount(scrollback_);
         conversations_.insert(key, conversation);

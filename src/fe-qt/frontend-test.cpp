@@ -1269,6 +1269,16 @@ int main(int argc, char **argv)
     qt_fe_select_session(channel);
     QCoreApplication::processEvents();
     verify(chat->verticalScrollBar()->value() == chat->verticalScrollBar()->maximum(), "returning to a followed channel shows background status lines at the bottom");
+    verify(chat->contentsRect().bottom() - chat->viewport()->geometry().bottom() >= 8,
+           "transcript retains bottom spacing after switching channels");
+    qt_fe_print(channel, "own last message", 0);
+    qt_fe_select_session(query);
+    qt_fe_select_session(channel);
+    for (int i = 0; i < 5; ++i) QCoreApplication::processEvents();
+    QTextCursor lastMessage(chat->document());
+    lastMessage.movePosition(QTextCursor::End);
+    verify(chat->viewport()->height() - chat->cursorRect(lastMessage).bottom() >= 10,
+           "last message has room below it after returning to the channel");
     {
         int busyChannel;
         engine.insert(&busyChannel, engine.value(channel));
