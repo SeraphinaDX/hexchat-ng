@@ -5,6 +5,8 @@
 hexchat-ng is an IRC client with a Qt 6 frontend built on the ZoiteChat/HexChat
 C engine.
 
+![screenshot](readme.png)
+
 We will continue reviewing changes made to ZoiteChat and absorbing improvements
 when they make sense for hexchat-ng. This includes useful IRC engine fixes,
 protocol updates and other changes that fit this fork's direction.
